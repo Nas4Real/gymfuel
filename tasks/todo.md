@@ -1,0 +1,221 @@
+# GymFuel Task Checklist
+
+Specification: `docs/product-spec.md`
+Plan: `tasks/plan.md`
+
+## Milestone 1: Foundation
+
+### Task 1 — Repository and Android scaffold
+
+- [x] Initialize Git on `main` and add Android/Supabase secret and build-output ignore rules.
+- [x] Scaffold the minimal Kotlin/Compose Android application with Gradle wrapper and version catalog.
+- [x] Record the installed JDK/Android SDK assumptions and make a clean debug build reproducible.
+- Acceptance: `testDebugUnitTest`, `lintDebug`, and `assembleDebug` exist and pass on the scaffold.
+- Verify: clean build plus staged-diff secret scan.
+- Likely files: `.gitignore`, Gradle root files, version catalog, generated wrapper, minimal `app` files.
+- Dependency: none.
+- Scope: M/L because scaffold files are generated; behavioral code remains minimal.
+
+### Task 2 — Theme and accessible application shell
+
+- [ ] Translate `.superdesign/design-system.md` into Compose color, type, shape, and spacing tokens.
+- [ ] Implement edge-to-edge app shell and labeled bottom navigation placeholders.
+- [ ] Add light/dark previews and semantic UI tests for navigation labels.
+- Acceptance: theme matches the approved visual direction and remains usable at large font scale.
+- Verify: Compose preview review, focused UI test, lint, debug build.
+- Likely files: theme tokens, typography, app shell, shell UI test.
+- Dependency: Task 1.
+- Scope: M, 4–5 files.
+
+## Milestone 2: Nutrition domain
+
+### Task 3 — Nutrient and quantity values
+
+- [ ] Write failing tests for non-negative nutrients, positive logged quantities, unit scaling, and rounding.
+- [ ] Implement pure Kotlin domain values with unit-bearing names and deterministic display rounding.
+- Acceptance: invalid values cannot enter the domain and valid per-100-g values scale correctly.
+- Verify: focused JVM tests and full unit suite.
+- Likely files: domain value file, focused test file.
+- Dependency: Task 1.
+- Scope: S, 2 files.
+
+### Task 4 — Muscle-gain target calculator
+
+- [ ] Write table-driven failing tests for Mifflin-St Jeor, activity multipliers, surplus, macro derivation, and manual override validation.
+- [ ] Implement formula constants and an explanation model independent of Android.
+- Acceptance: documented fixtures produce deterministic targets and expose every calculation step.
+- Verify: focused JVM tests.
+- Likely files: calculator models, calculator implementation, test fixtures/tests.
+- Dependency: Task 3.
+- Scope: M, 3 files.
+
+### Task 5 — Daily aggregation and forecast
+
+- [ ] Write failing tests for consumed, planned, skipped, remaining, over-target, adherence tolerance, and empty-day cases.
+- [ ] Implement aggregation and Today summary models without Android dependencies.
+- Acceptance: consumed totals and planned forecast never contaminate one another.
+- Verify: focused JVM tests.
+- Likely files: entry/summary domain model, aggregator, tests.
+- Dependency: Task 3.
+- Scope: M, 3 files.
+
+## Milestone 3: First useful offline slice
+
+### Task 6 — Room database foundation
+
+- [ ] Define database configuration, converters, sync metadata, and migration-test infrastructure.
+- [ ] Prove a fresh database opens and a placeholder migration path is testable.
+- Acceptance: Room is injectable/testable and destructive fallback is disabled for user data.
+- Verify: Room instrumentation test and debug build.
+- Likely files: database, converters, database test, DI/provider wiring.
+- Dependency: Task 1.
+- Scope: M, 4 files.
+
+### Task 7 — Local foods
+
+- [ ] Write DAO/repository tests for create, edit, favorite, soft delete, recent query, and similar-name lookup.
+- [ ] Implement food entity, DAO, mappings, and local-first repository behavior.
+- Acceptance: raw/cooked state and per-100-g nutrients persist through process restart.
+- Verify: DAO instrumentation tests plus repository JVM tests.
+- Likely files: food entity/model mapping, DAO, repository, tests.
+- Dependencies: Tasks 3 and 6.
+- Scope: M, 4–5 files.
+
+### Task 8 — Local food entries and snapshots
+
+- [ ] Write tests proving entries snapshot nutrition/name/preparation and survive later food edit/delete.
+- [ ] Implement entry entity, DAO transaction, mappings, and repository flow by local date.
+- Acceptance: entry creation and immutable history are atomic and persistent.
+- Verify: Room transaction/instrumentation tests.
+- Likely files: entry entity, DAO, repository/mapping, tests.
+- Dependencies: Tasks 5–7.
+- Scope: M, 4–5 files.
+
+### Task 9 — Create-food vertical UI slice
+
+- [ ] Implement food form state, validation, raw/cooked selection, nutrient inputs, and save behavior.
+- [ ] Cover empty, validation, saving, and success states with semantics.
+- Acceptance: a user can create and find chicken entirely offline.
+- Verify: ViewModel unit tests, Compose UI test, manual emulator check.
+- Likely files: UI state/ViewModel, screen, reusable nutrient input, tests.
+- Dependency: Task 7.
+- Scope: M, 4–5 files.
+
+### Task 10 — Consumed logging and Today UI slice
+
+- [ ] Implement recent/search food picker, quantity entry, live nutrient preview, and consumed submission.
+- [ ] Render calorie hero, three macro rows, entries, remaining values, empty state, and Undo.
+- Acceptance: logging a weighed portion updates the Today screen immediately and persists offline.
+- Verify: aggregation/ViewModel tests, Compose flow test, airplane-mode process-restart check.
+- Likely files: logging ViewModel/state, Today screen/components, bottom sheet, tests.
+- Dependencies: Tasks 2, 5, 8, and 9.
+- Scope: split into subcommits if any file exceeds 200 lines or more than 5 files change.
+
+## Milestone 4: Planning and speed
+
+### Task 11 — Planned lifecycle and forecast
+
+- [ ] Test create planned, edit quantity, consume exactly once, skip, and undo transitions.
+- [ ] Add dashed forecast markers and compact forecast copy without duplicating the dashboard.
+- Acceptance: state is understandable without color and consumed totals remain accurate.
+- Verify: transition unit tests, Compose semantics test, manual design comparison.
+- Likely files: transition use case, Today UI state, macro component, tests.
+- Dependency: Task 10.
+- Scope: M, 4 files.
+
+### Task 12 — Repeat logging shortcuts
+
+- [ ] Add recent/favorite ordering and repeat with remembered quantity requiring explicit confirmation.
+- [ ] Measure the common path against the three-tap-plus-quantity target.
+- Acceptance: common food reuse is fast without accidental duplicate logging.
+- Verify: repository ordering tests, UI flow test, manual tap count.
+- Likely files: query/use case, picker state, picker UI, tests.
+- Dependencies: Tasks 7 and 10.
+- Scope: M, 4 files.
+
+### Task 13 — UI quality checkpoint
+
+- [ ] Verify 320 dp width, common phone sizes, dark theme, 200% font scale, TalkBack, switch access/hardware keyboard, and reduced motion.
+- [ ] Add explicit offline, pending, failed, validation, empty, and undo states.
+- [ ] Compare implementation with approved Superdesign direction and capture reviewed screenshots.
+- Acceptance: no clipped critical content, inaccessible control, color-only meaning, or blocked common flow.
+- Verify: Compose tests, Accessibility Scanner/TalkBack manual pass, lint.
+- Dependencies: Tasks 10–12.
+- Scope: split findings into focused fixes; do not perform unrelated redesign.
+
+## Milestone 5: Supabase and synchronization
+
+### Task 14 — Private authentication
+
+- [ ] Externalize URL/publishable key with a redacted example and fail safely when missing.
+- [ ] Implement sign-in, session restore, sign-out, and auth error state using verified current Supabase APIs.
+- Acceptance: no service-role key or credential reaches source control/logging.
+- Verify: auth state tests, clean-install manual sign-in, secret scan.
+- Likely files: build config, auth data source/repository, auth ViewModel/screen, tests.
+- Dependency: Tasks 1–2.
+- Scope: M; separate config and UI commits if needed.
+
+### Task 15 — PostgreSQL schema and RLS
+
+- [ ] Write migrations for profiles, versioned targets, foods, and food entries with constraints/indexes/revisions/tombstones.
+- [ ] Enable RLS and test select/insert/update/delete isolation with two users.
+- Acceptance: migrations reproduce from zero and cross-user operations fail.
+- Verify: `supabase db reset` plus SQL policy tests.
+- Likely files: schema migration, RLS migration, SQL tests, schema notes.
+- Dependency: approved local entity contracts from Tasks 7–8.
+- Scope: M, 3–4 files.
+
+### Task 16 — Transactional outbox
+
+- [ ] Write failing tests for atomic local write + enqueue, idempotent retry, permanent/retryable failures, and tombstones.
+- [ ] Implement outbox persistence and repository integration.
+- Acceptance: app termination cannot leave accepted local data without a durable pending mutation.
+- Verify: Room/repository tests including simulated interruption.
+- Likely files: outbox entity/DAO, transaction coordinator, repository integration, tests.
+- Dependencies: Tasks 6–8 and 15.
+- Scope: M, 4–5 files.
+
+### Task 17 — Push/pull worker and sync health
+
+- [ ] Implement authenticated idempotent push, revision-aware pull, unique WorkManager scheduling, retry/backoff, and observability-safe errors.
+- [ ] Surface synced/pending/failed status and a manual retry action.
+- Acceptance: airplane-mode entries synchronize exactly once after reconnection and failures never remove local data.
+- Verify: fake-remote tests, WorkManager integration tests, local Supabase manual scenario.
+- Likely files: remote DTO/source, sync engine, worker, status UI, tests; split into two tasks if over 5 files.
+- Dependencies: Tasks 14–16.
+- Scope: M/L; mandatory split if implementation exceeds task-size limits.
+
+### Task 18 — Clean-install recovery
+
+- [ ] Hydrate an empty Room database after authenticated sign-in while showing explicit restore progress/failure.
+- [ ] Test replay safety, pagination, target/food/entry ordering, and interrupted restore.
+- Acceptance: a clean emulator reproduces synchronized totals without duplicates.
+- Verify: integration tests and clean-emulator manual recovery.
+- Dependencies: Task 17.
+- Scope: M, 3–5 files.
+
+## Milestone 6: History and release readiness
+
+### Task 19 — Daily and weekly history
+
+- [ ] Add date navigation, daily totals, seven-day averages, adherence counts, and streak rules from the domain layer.
+- [ ] Build a readable compact visualization in Compose; justify any chart dependency before adding it.
+- Acceptance: tested fixtures match all displayed values and incomplete/future days do not break streaks.
+- Verify: domain/ViewModel tests, Compose semantics and screenshot review.
+- Dependencies: Tasks 5, 8, and 18.
+- Scope: M; split domain and UI if needed.
+
+### Task 20 — Hardening, documentation, and release checkpoint
+
+- [ ] Test Room/Postgres migrations, process death, timezone/locale changes, decimal input, auth expiry, and sync recovery.
+- [ ] Add CI for deterministic checks and document environment/setup/Supabase migration workflow.
+- [ ] Run code quality, security, accessibility, and dependency reviews; resolve all high-priority findings.
+- Acceptance: all 12 product-spec success criteria have recorded evidence and a debug APK installs on the owner's phone.
+- Verify: full command suite, clean checkout, clean emulator, physical-device smoke test.
+- Dependencies: all prior tasks.
+- Scope: findings become individual focused tasks rather than one bulk change.
+
+## Approval
+
+- [x] Owner approved the implementation plan.
+- [x] Owner approved the Today visual direction or explicitly requested implementation without visual iteration.

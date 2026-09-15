@@ -1,0 +1,40 @@
+# Gradle and Android build output
+.gradle/
+**/build/
+captures/
+.kotlin/
+
+# Local machine and IDE state
+local.properties
+.idea/
+*.iml
+
+# Signing and secrets
+*.jks
+*.keystore
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+
+# Supabase local state and personal data
+supabase/.branches/
+supabase/.temp/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+exports/
+
+# Generated artifacts
+*.apk
+*.aab
+
+# Design-tool temporary files
+.superdesign/tmp/
+
+# OS noise
+.DS_Store
+Thumbs.db
