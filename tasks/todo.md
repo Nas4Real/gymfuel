@@ -18,9 +18,9 @@ Plan: `tasks/plan.md`
 
 ### Task 2 — Theme and accessible application shell
 
-- [ ] Translate `.superdesign/design-system.md` into Compose color, type, shape, and spacing tokens.
-- [ ] Implement edge-to-edge app shell and labeled bottom navigation placeholders.
-- [ ] Add light/dark previews and semantic UI tests for navigation labels.
+- [x] Translate `.superdesign/design-system.md` into Compose color, type, shape, and spacing tokens.
+- [x] Implement edge-to-edge app shell and labeled bottom navigation placeholders.
+- [x] Add light/dark previews and semantic UI tests for navigation labels.
 - Acceptance: theme matches the approved visual direction and remains usable at large font scale.
 - Verify: Compose preview review, focused UI test, lint, debug build.
 - Likely files: theme tokens, typography, app shell, shell UI test.
