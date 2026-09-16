@@ -1,12 +1,11 @@
 package com.gymfuel.app.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -21,22 +20,47 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gymfuel.app.R
 
-private val Paper = Color(0xFFF7F7F2)
-private val CleanPaper = Color(0xFFFFFFFF)
-private val MossWash = Color(0xFFE9EEE8)
-private val Forest = Color(0xFF173B2B)
-private val Ink = Color(0xFF17211B)
-private val FieldGray = Color(0xFF5E6962)
-private val Grid = Color(0xFFCBD3CD)
-private val Brick = Color(0xFFB3261E)
+private val LightColors = lightColorScheme(
+    primary = Color(0xFF173B2B),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFE9EEE8),
+    onPrimaryContainer = Color(0xFF17211B),
+    secondary = Color(0xFF3B7251),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFDCECE1),
+    onSecondaryContainer = Color(0xFF173B2B),
+    background = Color(0xFFF7F7F2),
+    onBackground = Color(0xFF17211B),
+    surface = Color.White,
+    onSurface = Color(0xFF17211B),
+    surfaceVariant = Color(0xFFE9EEE8),
+    onSurfaceVariant = Color(0xFF5E6962),
+    outline = Color(0xFFCBD3CD),
+    error = Color(0xFFB3261E),
+)
 
-private val DeepInk = Color(0xFF101713)
-private val ForestBlack = Color(0xFF18211C)
-private val RaisedMoss = Color(0xFF233129)
-private val Mint = Color(0xFF9ED7B3)
-private val PaperText = Color(0xFFF1F5F1)
-private val SageGray = Color(0xFFAAB7AE)
-private val DarkGrid = Color(0xFF3B4A40)
+private val DarkColors = darkColorScheme(
+    primary = Color(0xFFB7F397),
+    onPrimary = Color(0xFF0C2413),
+    primaryContainer = Color(0xFF203C2A),
+    onPrimaryContainer = Color(0xFFD9FFD7),
+    secondary = Color(0xFF84D6A3),
+    onSecondary = Color(0xFF092416),
+    secondaryContainer = Color(0xFF284634),
+    onSecondaryContainer = Color(0xFFD9FFE5),
+    tertiary = Color(0xFFF0C66E),
+    onTertiary = Color(0xFF2A2000),
+    tertiaryContainer = Color(0xFF4C3A0D),
+    onTertiaryContainer = Color(0xFFFFE7A3),
+    background = Color(0xFF090D0A),
+    onBackground = Color(0xFFF2F7F2),
+    surface = Color(0xFF101612),
+    onSurface = Color(0xFFF2F7F2),
+    surfaceVariant = Color(0xFF18231B),
+    onSurfaceVariant = Color(0xFFA9B7AC),
+    outline = Color(0xFF314238),
+    error = Color(0xFFFFB4AB),
+)
 
 @Immutable
 data class GymFuelSemanticColors(
@@ -58,16 +82,16 @@ private val LightSemanticColors = GymFuelSemanticColors(
 )
 
 private val DarkSemanticColors = GymFuelSemanticColors(
-    protein = Color(0xFF71D39B),
-    carbohydrate = Color(0xFFF2C66D),
-    fat = Color(0xFFFFAB95),
-    calories = Color(0xFFDDE7E0),
-    success = Color(0xFF6FD394),
-    warning = Color(0xFFF3C36A),
+    protein = Color(0xFF8EE3B0),
+    carbohydrate = Color(0xFFF0C66E),
+    fat = Color(0xFFFFA58F),
+    calories = Color(0xFFF2F7F2),
+    success = Color(0xFF84D6A3),
+    warning = Color(0xFFF0C66E),
 )
 
 private val LocalGymFuelSemanticColors = staticCompositionLocalOf {
-    LightSemanticColors
+    DarkSemanticColors
 }
 
 object GymFuelTokens {
@@ -77,91 +101,45 @@ object GymFuelTokens {
         get() = LocalGymFuelSemanticColors.current
 }
 
-private val LightColors = lightColorScheme(
-    primary = Forest,
-    onPrimary = CleanPaper,
-    primaryContainer = MossWash,
-    onPrimaryContainer = Ink,
-    background = Paper,
-    onBackground = Ink,
-    surface = CleanPaper,
-    onSurface = Ink,
-    surfaceVariant = MossWash,
-    onSurfaceVariant = FieldGray,
-    outline = Grid,
-    error = Brick,
+private val Poppins = FontFamily(
+    Font(R.font.poppins_regular, FontWeight.Normal),
+    Font(R.font.poppins_semibold, FontWeight.SemiBold),
+    Font(R.font.poppins_bold, FontWeight.Bold),
 )
 
-private val DarkColors = darkColorScheme(
-    primary = Mint,
-    onPrimary = Color(0xFF092416),
-    primaryContainer = RaisedMoss,
-    onPrimaryContainer = PaperText,
-    background = DeepInk,
-    onBackground = PaperText,
-    surface = ForestBlack,
-    onSurface = PaperText,
-    surfaceVariant = RaisedMoss,
-    onSurfaceVariant = SageGray,
-    outline = DarkGrid,
-    error = Color(0xFFFFB4AB),
-)
-
-private val SpaceGrotesk = FontFamily(
-    Font(R.font.space_grotesk_variable, FontWeight.Normal),
-    Font(R.font.space_grotesk_variable, FontWeight.SemiBold),
-    Font(R.font.space_grotesk_variable, FontWeight.Bold),
-)
-
-val JetBrainsMono = FontFamily(
-    Font(R.font.jetbrains_mono_variable, FontWeight.Normal),
-    Font(R.font.jetbrains_mono_variable, FontWeight.SemiBold),
+private fun poppinsStyle(
+    fontSize: Int,
+    lineHeight: Int,
+    fontWeight: FontWeight = FontWeight.Normal,
+) = TextStyle(
+    fontFamily = Poppins,
+    fontWeight = fontWeight,
+    fontSize = fontSize.sp,
+    lineHeight = lineHeight.sp,
 )
 
 private val GymFuelTypography = Typography(
-    displayLarge = TextStyle(
-        fontFamily = SpaceGrotesk,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 32.sp,
-        lineHeight = 38.sp,
-    ),
-    headlineLarge = TextStyle(
-        fontFamily = SpaceGrotesk,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
-        lineHeight = 30.sp,
-    ),
-    titleMedium = TextStyle(
-        fontFamily = SpaceGrotesk,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 16.sp,
-        lineHeight = 22.sp,
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = SpaceGrotesk,
-        fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
-        lineHeight = 21.sp,
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = SpaceGrotesk,
-        fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
-        lineHeight = 18.sp,
-    ),
-    labelMedium = TextStyle(
-        fontFamily = SpaceGrotesk,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.4.sp,
-    ),
+    displayLarge = poppinsStyle(36, 42, FontWeight.Bold),
+    displayMedium = poppinsStyle(32, 38, FontWeight.Bold),
+    displaySmall = poppinsStyle(28, 34, FontWeight.SemiBold),
+    headlineLarge = poppinsStyle(26, 32, FontWeight.SemiBold),
+    headlineMedium = poppinsStyle(22, 28, FontWeight.SemiBold),
+    headlineSmall = poppinsStyle(20, 26, FontWeight.SemiBold),
+    titleLarge = poppinsStyle(18, 24, FontWeight.SemiBold),
+    titleMedium = poppinsStyle(16, 22, FontWeight.SemiBold),
+    titleSmall = poppinsStyle(14, 20, FontWeight.SemiBold),
+    bodyLarge = poppinsStyle(15, 22),
+    bodyMedium = poppinsStyle(13, 19),
+    bodySmall = poppinsStyle(12, 17),
+    labelLarge = poppinsStyle(14, 20, FontWeight.SemiBold),
+    labelMedium = poppinsStyle(12, 17, FontWeight.SemiBold),
+    labelSmall = poppinsStyle(11, 16, FontWeight.SemiBold),
 )
 
 private val GymFuelShapes = Shapes(
-    small = RoundedCornerShape(4.dp),
-    medium = RoundedCornerShape(8.dp),
-    large = RoundedCornerShape(12.dp),
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(28.dp),
 )
 
 object GymFuelSpacing {
@@ -177,7 +155,7 @@ object GymFuelSpacing {
 
 @Composable
 fun GymFuelTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(

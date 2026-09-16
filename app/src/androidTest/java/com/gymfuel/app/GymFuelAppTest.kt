@@ -32,4 +32,32 @@ class GymFuelAppTest {
             .assertIsSelected()
         composeRule.onNodeWithText("Food library").assertIsDisplayed()
     }
+
+    @Test
+    fun foodsScreen_addFoodOpensFoodEditor() {
+        composeRule.setContent {
+            GymFuelApp()
+        }
+
+        composeRule.onNode(hasText("Foods") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("Add food").assertIsDisplayed().performClick()
+
+        composeRule.onNodeWithText("Create food").assertIsDisplayed()
+        composeRule.onNodeWithText("Food name").assertIsDisplayed()
+        composeRule.onNodeWithText("Calories").assertIsDisplayed()
+        composeRule.onNodeWithText("Protein").assertIsDisplayed()
+        composeRule.onNodeWithText("Carbohydrates").assertIsDisplayed()
+        composeRule.onNodeWithText("Fat").assertExists()
+    }
+
+    @Test
+    fun todayScreen_logFoodOpensFirstFoodEditor() {
+        composeRule.setContent {
+            GymFuelApp()
+        }
+
+        composeRule.onNodeWithText("Log food").assertIsDisplayed().performClick()
+
+        composeRule.onNodeWithText("Create food").assertIsDisplayed()
+    }
 }
