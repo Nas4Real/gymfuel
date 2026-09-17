@@ -1,0 +1,11 @@
+drop policy if exists food_template_images_read on storage.objects;
+
+update public.food_templates
+set image_path = null
+where id in (
+  '10000000-0000-4000-8000-000000000004',
+  '10000000-0000-4000-8000-000000000005',
+  '10000000-0000-4000-8000-000000000006',
+  '10000000-0000-4000-8000-000000000007',
+  '10000000-0000-4000-8000-000000000008'
+);
