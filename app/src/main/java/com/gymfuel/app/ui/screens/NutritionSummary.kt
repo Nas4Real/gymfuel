@@ -23,9 +23,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.gymfuel.app.ui.theme.GymFuelSpacing
 import com.gymfuel.app.ui.theme.GymFuelTokens
+import com.gymfuel.app.core.model.DailyNutrition
+import com.gymfuel.app.core.model.NutritionTarget
+import java.math.BigDecimal
 
 @Composable
-internal fun CalorieSummary() {
+internal fun CalorieSummary(nutrition: DailyNutrition, target: NutritionTarget?) {
+    val calories = nutrition.consumed.calories.stripTrailingZeros().toPlainString()
+    val progress = if (target == null || target.calories.signum() == 0) 0f else
+        nutrition.consumed.calories.divide(target.calories, 4, java.math.RoundingMode.HALF_UP).toFloat().coerceIn(0f, 1f)
+    val remaining = target?.calories?.subtract(nutrition.consumed.calories)?.max(BigDecimal.ZERO)
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -42,7 +49,7 @@ internal fun CalorieSummary() {
                 style = MaterialTheme.typography.labelMedium,
             )
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(text = "0", style = MaterialTheme.typography.displayLarge)
+                Text(text = calories, style = MaterialTheme.typography.displayLarge)
                 Text(
                     text = " kcal",
                     modifier = Modifier.padding(bottom = 5.dp),
@@ -51,18 +58,18 @@ internal fun CalorieSummary() {
                 )
             }
             LinearProgressIndicator(
-                progress = { 0f },
+                progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
                     .semantics {
-                        contentDescription = "Calories consumed: 0. Daily target not set."
+                        contentDescription = "Calories consumed: $calories. ${target?.let { "Target ${it.calories}." } ?: "Daily target not set."}"
                     },
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.outline,
             )
             Text(
-                text = "Set your daily target to start tracking progress.",
+                text = if (target == null) "Set your daily target to start tracking progress." else "${remaining?.stripTrailingZeros()?.toPlainString()} kcal remaining · ${nutrition.forecast.calories.stripTrailingZeros().toPlainString()} kcal forecast",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -71,17 +78,17 @@ internal fun CalorieSummary() {
 }
 
 @Composable
-internal fun MacroSummary() {
+internal fun MacroSummary(nutrition: DailyNutrition, target: NutritionTarget?) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.padding(horizontal = GymFuelSpacing.large)) {
-            MacroRow("Protein", GymFuelTokens.colors.protein)
+            MacroRow("Protein", nutrition.consumed.proteinGrams, target?.proteinGrams, GymFuelTokens.colors.protein)
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f))
-            MacroRow("Carbohydrates", GymFuelTokens.colors.carbohydrate)
+            MacroRow("Carbohydrates", nutrition.consumed.carbohydrateGrams, target?.carbohydrateGrams, GymFuelTokens.colors.carbohydrate)
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f))
-            MacroRow("Fat", GymFuelTokens.colors.fat)
+            MacroRow("Fat", nutrition.consumed.fatGrams, target?.fatGrams, GymFuelTokens.colors.fat)
         }
     }
 }
@@ -89,6 +96,8 @@ internal fun MacroSummary() {
 @Composable
 private fun MacroRow(
     label: String,
+    value: BigDecimal,
+    target: BigDecimal?,
     color: Color,
 ) {
     Row(
@@ -112,7 +121,7 @@ private fun MacroRow(
             Text(text = label, style = MaterialTheme.typography.bodyLarge)
         }
         Text(
-            text = "0 g",
+            text = "${value.stripTrailingZeros().toPlainString()}${target?.let { " / ${it.stripTrailingZeros().toPlainString()}" } ?: ""} g",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.titleSmall,
         )

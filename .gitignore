@@ -21,6 +21,7 @@ local.properties
 # Supabase local state and personal data
 supabase/.branches/
 supabase/.temp/
+supabase/.gradle/
 *.db
 *.db-shm
 *.db-wal

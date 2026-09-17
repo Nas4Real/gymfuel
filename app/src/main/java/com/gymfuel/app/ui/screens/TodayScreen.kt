@@ -23,17 +23,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.gymfuel.app.ui.theme.GymFuelSpacing
+import com.gymfuel.app.core.model.DailyNutrition
+import com.gymfuel.app.core.model.FoodEntry
+import com.gymfuel.app.core.model.NutritionTarget
+import com.gymfuel.app.core.model.EntryStatus
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
 fun TodayScreen(
+    nutrition: DailyNutrition,
+    target: NutritionTarget?,
+    entries: List<FoodEntry>,
+    date: LocalDate = LocalDate.now(),
+    pendingSyncCount: Int = 0,
+    failedSyncCount: Int = 0,
+    onUpdateEntryStatus: (String, EntryStatus) -> Unit,
     onLogFood: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val today = remember {
-        LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.getDefault()))
+    val formattedDate = remember(date) {
+        date.format(DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.getDefault()))
     }
 
     LazyColumn(
@@ -44,13 +55,16 @@ fun TodayScreen(
     ) {
         item {
             TodayHeader(
-                date = today,
+                date = formattedDate,
+                pendingSyncCount = pendingSyncCount,
+                failedSyncCount = failedSyncCount,
                 modifier = Modifier.padding(top = GymFuelSpacing.xLarge),
             )
         }
-        item { CalorieSummary() }
-        item { MacroSummary() }
-        item { EmptyLogState() }
+        item { CalorieSummary(nutrition, target) }
+        item { MacroSummary(nutrition, target) }
+        if (entries.isEmpty()) item { EmptyLogState() }
+        else items(entries.size, key = { entries[it].id }) { index -> LoggedFoodRow(entries[index], onUpdateEntryStatus) }
         item {
             Button(
                 onClick = onLogFood,
@@ -74,10 +88,49 @@ fun TodayScreen(
 }
 
 @Composable
+private fun LoggedFoodRow(entry: FoodEntry, onUpdateStatus: (String, EntryStatus) -> Unit) {
+    val totals = entry.nutritionPer100gSnapshot.forQuantity(entry.quantityGrams)
+    Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.medium) {
+        Column(Modifier.fillMaxWidth().padding(GymFuelSpacing.large)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text(entry.foodNameSnapshot, style = MaterialTheme.typography.titleMedium)
+                    Text("${entry.quantityGrams.stripTrailingZeros().toPlainString()} g · ${entry.status.wireValue}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                }
+                Text("${totals.calories.stripTrailingZeros().toPlainString()} kcal", style = MaterialTheme.typography.labelLarge)
+            }
+            if (entry.status == EntryStatus.Planned) {
+                Row(horizontalArrangement = Arrangement.spacedBy(GymFuelSpacing.small)) {
+                    androidx.compose.material3.TextButton(onClick = { onUpdateStatus(entry.id, EntryStatus.Consumed) }) { Text("Mark eaten") }
+                    androidx.compose.material3.TextButton(onClick = { onUpdateStatus(entry.id, EntryStatus.Skipped) }) { Text("Skip") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun TodayHeader(
     date: String,
+    pendingSyncCount: Int,
+    failedSyncCount: Int,
     modifier: Modifier = Modifier,
 ) {
+    val statusText = when {
+        failedSyncCount > 0 -> "SYNC FAILED"
+        pendingSyncCount > 0 -> "SYNC PENDING"
+        else -> "LOCAL · READY"
+    }
+    val statusContainerColor = when {
+        failedSyncCount > 0 -> MaterialTheme.colorScheme.errorContainer
+        pendingSyncCount > 0 -> MaterialTheme.colorScheme.tertiaryContainer
+        else -> MaterialTheme.colorScheme.primaryContainer
+    }
+    val statusContentColor = when {
+        failedSyncCount > 0 -> MaterialTheme.colorScheme.onErrorContainer
+        pendingSyncCount > 0 -> MaterialTheme.colorScheme.onTertiaryContainer
+        else -> MaterialTheme.colorScheme.onPrimaryContainer
+    }
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -95,12 +148,12 @@ private fun TodayHeader(
             )
         }
         Surface(
-            color = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = statusContainerColor,
+            contentColor = statusContentColor,
             shape = MaterialTheme.shapes.small,
         ) {
             Text(
-                text = "LOCAL · READY",
+                text = statusText,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
                 style = MaterialTheme.typography.labelSmall,
             )

@@ -38,4 +38,20 @@ AGP 9 enables built-in Kotlin, so the project intentionally does not apply the o
 
 ## Current state
 
-The foundation builds a small installable shell. Nutrition domain logic, Room persistence, Supabase configuration, and personal data are not yet present.
+The Android application now includes the complete personal-use nutrition slice:
+
+- dark Poppins Compose UI for Today, food library, seven-day history, and settings
+- Room-backed foods, editable custom foods, immutable meal snapshots, targets, and a durable sync outbox
+- weighed food logging with live calorie/protein/carbohydrate/fat calculation and consumed/planned states
+- Mifflin-St Jeor muscle-gain target calculation
+- Supabase email/password authentication plus RLS-protected Postgres recovery synchronization
+- bundled food examples and WebP images, with seed templates also stored in Supabase
+
+Copy the keys from `.env.example` into untracked `local.properties` before building cloud-enabled variants:
+
+```properties
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
+```
+
+The Android client must use only a publishable key. Never place a Supabase secret or `service_role` key in this repository or the APK.

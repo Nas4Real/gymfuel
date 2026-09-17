@@ -20,18 +20,37 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import com.gymfuel.app.ui.screens.AddFoodSheet
 import com.gymfuel.app.ui.screens.FoodsScreen
+import com.gymfuel.app.ui.screens.LogFoodSheet
+import com.gymfuel.app.ui.screens.SettingsScreen
+import com.gymfuel.app.ui.screens.HistoryScreen
 import com.gymfuel.app.ui.screens.TodayScreen
+import com.gymfuel.app.core.data.FoodRepository
+import com.gymfuel.app.core.data.LocalSeedFoods
+import com.gymfuel.app.core.data.remote.SupabaseGateway
+import com.gymfuel.app.core.model.DailyNutrition
+import com.gymfuel.app.core.model.Food
+import com.gymfuel.app.core.model.WeeklyNutrition
+import com.gymfuel.app.core.sync.SyncScheduler
+import java.time.LocalDate
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.gymfuel.app.ui.theme.GymFuelSpacing
 import com.gymfuel.app.ui.theme.GymFuelTheme
 
@@ -68,10 +87,33 @@ private enum class AppDestination(
 }
 
 @Composable
-fun GymFuelApp(darkTheme: Boolean = true) {
+fun GymFuelApp(repository: FoodRepository? = null, supabase: SupabaseGateway? = null, darkTheme: Boolean = true) {
     GymFuelTheme(darkTheme = darkTheme) {
         var selectedDestination by rememberSaveable { mutableStateOf(AppDestination.Today) }
         var showFoodEditor by rememberSaveable { mutableStateOf(false) }
+        var foodBeingEdited by remember { mutableStateOf<Food?>(null) }
+        var showFoodLogger by rememberSaveable { mutableStateOf(false) }
+        val scope = rememberCoroutineScope()
+        val context = LocalContext.current
+        val today by produceState(initialValue = LocalDate.now()) {
+            while (true) {
+                delay(60_000)
+                value = LocalDate.now()
+            }
+        }
+        val foodsFlow = remember(repository) { repository?.foods ?: flowOf(LocalSeedFoods.all) }
+        val entriesFlow = remember(repository, today) { repository?.entriesFor(today) ?: flowOf(emptyList()) }
+        val targetFlow = remember(repository, today) { repository?.targetFor(today) ?: flowOf(null) }
+        val weekEntriesFlow = remember(repository, today) { repository?.entriesBetween(today.minusDays(6), today) ?: flowOf(emptyList()) }
+        val syncHealthFlow = remember(repository) {
+            repository?.syncHealth ?: flowOf(FoodRepository.SyncHealth(pendingCount = 0, failedCount = 0))
+        }
+        val foods by foodsFlow.collectAsState(initial = LocalSeedFoods.all)
+        val entries by entriesFlow.collectAsState(initial = emptyList())
+        val target by targetFlow.collectAsState(initial = null)
+        val weekEntries by weekEntriesFlow.collectAsState(initial = emptyList())
+        val syncHealth by syncHealthFlow.collectAsState(initial = FoodRepository.SyncHealth(0, 0))
+        val dailyNutrition = DailyNutrition.from(entries)
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -90,24 +132,68 @@ fun GymFuelApp(darkTheme: Boolean = true) {
 
             when (selectedDestination) {
                 AppDestination.Today -> TodayScreen(
-                    onLogFood = { showFoodEditor = true },
+                    nutrition = dailyNutrition,
+                    target = target?.nutrition,
+                    entries = entries,
+                    date = today,
+                    pendingSyncCount = syncHealth.pendingCount,
+                    failedSyncCount = syncHealth.failedCount,
+                    onUpdateEntryStatus = { id, status -> scope.launch { repository?.updateEntryStatus(id, status) } },
+                    onLogFood = { showFoodLogger = true },
                     modifier = screenModifier,
                 )
                 AppDestination.Foods -> FoodsScreen(
-                    onAddFood = { showFoodEditor = true },
+                    foods = foods,
+                    onAddFood = {
+                        foodBeingEdited = null
+                        showFoodEditor = true
+                    },
+                    onEditFood = { food ->
+                        foodBeingEdited = food
+                        showFoodEditor = true
+                    },
                     modifier = screenModifier,
                 )
-                AppDestination.History,
-                AppDestination.Settings,
-                -> DestinationPlaceholder(
-                    destination = selectedDestination,
+                AppDestination.History -> HistoryScreen(WeeklyNutrition.from(weekEntries, today), target?.nutrition, screenModifier)
+                AppDestination.Settings -> SettingsScreen(
+                    gateway = supabase,
+                    target = target,
+                    onSaveTarget = { profile -> scope.launch { repository?.saveCalculatedTarget(profile) } },
+                    onSyncRequested = { SyncScheduler.enqueue(context) },
                     modifier = screenModifier,
                 )
             }
         }
 
         if (showFoodEditor) {
-            AddFoodSheet(onDismiss = { showFoodEditor = false })
+            AddFoodSheet(
+                initialFood = foodBeingEdited,
+                onDismiss = { showFoodEditor = false },
+                onSave = { name, preparation, nutrition ->
+                    scope.launch {
+                        val existing = foodBeingEdited
+                        if (existing == null) {
+                            repository?.createFood(name, preparation, nutrition)
+                        } else {
+                            repository?.updateFood(existing.id, name, preparation, nutrition)
+                        }
+                        showFoodEditor = false
+                        foodBeingEdited = null
+                    }
+                },
+            )
+        }
+        if (showFoodLogger) {
+            LogFoodSheet(
+                foods = foods,
+                onDismiss = { showFoodLogger = false },
+                onLog = { food, grams, status ->
+                    scope.launch {
+                        repository?.logFood(food.id, grams, status)
+                        showFoodLogger = false
+                    }
+                },
+            )
         }
     }
 }

@@ -1,160 +1,79 @@
 package com.gymfuel.app.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
+import com.gymfuel.app.core.model.Food
+import com.gymfuel.app.core.model.NutritionPer100g
+import com.gymfuel.app.core.model.Preparation
 import com.gymfuel.app.ui.theme.GymFuelSpacing
-
-private enum class Preparation(val label: String) {
-    Raw("Raw"),
-    Cooked("Cooked"),
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddFoodSheet(
     onDismiss: () -> Unit,
+    onSave: (String, Preparation, NutritionPer100g) -> Unit,
+    initialFood: Food? = null,
 ) {
-    var foodName by rememberSaveable { mutableStateOf("") }
-    var preparation by rememberSaveable { mutableStateOf(Preparation.Raw) }
-    var calories by rememberSaveable { mutableStateOf("") }
-    var protein by rememberSaveable { mutableStateOf("") }
-    var carbohydrates by rememberSaveable { mutableStateOf("") }
-    var fat by rememberSaveable { mutableStateOf("") }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-    ) {
+    fun initialValue(value: java.math.BigDecimal?) = value?.stripTrailingZeros()?.toPlainString().orEmpty()
+    var foodName by rememberSaveable(initialFood?.id) { mutableStateOf(initialFood?.name.orEmpty()) }
+    var preparation by rememberSaveable(initialFood?.id) { mutableStateOf(initialFood?.preparation ?: Preparation.Raw) }
+    var calories by rememberSaveable(initialFood?.id) { mutableStateOf(initialValue(initialFood?.nutritionPer100g?.calories)) }
+    var protein by rememberSaveable(initialFood?.id) { mutableStateOf(initialValue(initialFood?.nutritionPer100g?.proteinGrams)) }
+    var carbohydrates by rememberSaveable(initialFood?.id) { mutableStateOf(initialValue(initialFood?.nutritionPer100g?.carbohydrateGrams)) }
+    var fat by rememberSaveable(initialFood?.id) { mutableStateOf(initialValue(initialFood?.nutritionPer100g?.fatGrams)) }
+    var attemptedSave by rememberSaveable { mutableStateOf(false) }
+    val values = listOf(calories, protein, carbohydrates, fat).map(String::toBigDecimalOrNull)
+    val isValid = foodName.isNotBlank() && values.all { it != null && it.signum() >= 0 }
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surface) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .navigationBarsPadding()
-                .imePadding()
-                .padding(horizontal = GymFuelSpacing.page)
-                .padding(bottom = GymFuelSpacing.xLarge),
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding().imePadding()
+                .padding(horizontal = GymFuelSpacing.page).padding(bottom = GymFuelSpacing.xLarge),
             verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.large),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.xSmall)) {
-                Text(
-                    text = "Create food",
-                    style = MaterialTheme.typography.headlineMedium,
-                )
-                Text(
-                    text = "Enter nutrition per 100 g so weighed portions can be calculated later.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Text(if (initialFood == null) "Create food" else "Edit food", style = MaterialTheme.typography.headlineMedium)
+                Text("Enter nutrition per 100 g. GymFuel calculates every weighed portion.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
             }
-            OutlinedTextField(
-                value = foodName,
-                onValueChange = { foodName = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Food name") },
-                supportingText = { Text("Example: Chicken breast") },
-                singleLine = true,
-            )
+            OutlinedTextField(foodName, { foodName = it.take(120) }, Modifier.fillMaxWidth(), label = { Text("Food name") }, supportingText = { Text("Example: Chicken breast") }, singleLine = true)
             Column(verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.small)) {
-                Text(
-                    text = "Preparation",
-                    style = MaterialTheme.typography.labelLarge,
-                )
+                Text("Preparation", style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(GymFuelSpacing.small)) {
-                    Preparation.entries.forEach { option ->
-                        FilterChip(
-                            selected = preparation == option,
-                            onClick = { preparation = option },
-                            label = { Text(option.label) },
-                        )
+                    listOf(Preparation.Raw, Preparation.Cooked, Preparation.Dry, Preparation.Drained).forEach { option ->
+                        FilterChip(preparation == option, { preparation = option }, label = { Text(option.wireValue.replaceFirstChar(Char::uppercase)) })
                     }
                 }
             }
-            Text(
-                text = "Nutrition per 100 g",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            NutrientField(
-                label = "Calories",
-                value = calories,
-                onValueChange = { calories = it },
-                unit = "kcal",
-            )
+            Text("Nutrition per 100 g", style = MaterialTheme.typography.titleMedium)
+            NutrientField("Calories", calories, { calories = it }, "kcal")
             Row(horizontalArrangement = Arrangement.spacedBy(GymFuelSpacing.medium)) {
-                NutrientField(
-                    label = "Protein",
-                    value = protein,
-                    onValueChange = { protein = it },
-                    unit = "g",
-                    modifier = Modifier.weight(1f),
-                )
-                NutrientField(
-                    label = "Carbohydrates",
-                    value = carbohydrates,
-                    onValueChange = { carbohydrates = it },
-                    unit = "g",
-                    modifier = Modifier.weight(1f),
-                )
+                NutrientField("Protein", protein, { protein = it }, "g", Modifier.weight(1f))
+                NutrientField("Carbohydrates", carbohydrates, { carbohydrates = it }, "g", Modifier.weight(1f))
             }
-            NutrientField(
-                label = "Fat",
-                value = fat,
-                onValueChange = { fat = it },
-                unit = "g",
-            )
+            NutrientField("Fat", fat, { fat = it }, "g")
+            if (attemptedSave && !isValid) Text("Complete every field with a value of zero or more.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             Button(
-                onClick = {},
-                enabled = false,
+                onClick = {
+                    attemptedSave = true
+                    if (isValid) onSave(foodName, preparation, NutritionPer100g(values[0]!!, values[1]!!, values[2]!!, values[3]!!))
+                },
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Save food")
-            }
-            Text(
-                text = "Local database saving is the next implementation slice.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-            )
+            ) { Text(if (initialFood == null) "Save food" else "Save changes") }
         }
     }
 }
 
 @Composable
-private fun NutrientField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    unit: String,
-    modifier: Modifier = Modifier,
-) {
+private fun NutrientField(label: String, value: String, onValueChange: (String) -> Unit, unit: String, modifier: Modifier = Modifier) {
     OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier.fillMaxWidth(),
-        label = { Text(label) },
-        suffix = { Text(unit) },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true,
+        value, { next -> if (next.length <= 10 && next.count { it == '.' } <= 1 && next.all { it.isDigit() || it == '.' }) onValueChange(next) },
+        modifier.fillMaxWidth(), label = { Text(label) }, suffix = { Text(unit) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true,
     )
 }

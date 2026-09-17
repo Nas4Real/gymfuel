@@ -15,7 +15,8 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         setContent {
-            GymFuelApp()
+            val app = application as GymFuelApplication
+            GymFuelApp(app.repository, app.supabase)
         }
     }
 }

@@ -28,6 +28,7 @@ The app must minimize repeated data entry, preserve trustworthy historical calcu
 
 - As the user, I can calculate an initial muscle-gain target from my body profile and activity level, inspect the formula, and adjust the result before saving it.
 - As the user, I can create and edit foods such as chicken, meat, rice, and oats with nutrients per 100 g.
+- As the user, I can attach a food image so the library and picker are faster to scan.
 - As the user, I can distinguish preparation states such as raw and cooked so portions are not compared against the wrong nutrient values.
 - As the user, I can add a weighed food portion directly as consumed or add it as planned for later.
 - As the user, I can mark a planned entry as consumed, change its actual quantity, or skip it.
@@ -74,9 +75,10 @@ Each food contains:
 - preparation state, for example raw, cooked, drained, or custom
 - calories, protein, carbohydrates, and fat per 100 g
 - favorite status and optional notes/source
+- optional private image stored in the user's `food-images` storage folder
 - creation, update, deletion, and synchronization metadata
 
-Food names need not be globally unique, but the interface warns when a very similar name and preparation state already exists. Nutrients and quantities must be non-negative and bounded to plausible storage limits. The UI should warn about unusual values without pretending that every food must fit a universal nutritional rule.
+Food names need not be globally unique, but the interface warns when a very similar name and preparation state already exists. Nutrients and quantities must be non-negative and bounded to plausible storage limits. The UI should warn about unusual values without pretending that every food must fit a universal nutritional rule. The food library is also the source for logging: the user selects an existing food, enters the quantity eaten in grams, previews the calculated nutrition, and confirms the entry. Manual food creation remains a separate action.
 
 ### Daily entries and historical integrity
 
@@ -123,6 +125,8 @@ The initial Supabase schema is expected to contain:
 - `nutrition_targets`
 - `foods`
 - `food_entries`
+
+Supabase Storage contains a private `food-images` bucket. Object paths begin with the authenticated user's id and Storage policies enforce that ownership for read, upload, update, and delete operations.
 
 The local database additionally contains synchronization metadata and an `outbox` table. Local table shapes may include UI-oriented fields, but domain models must not depend directly on Room or Supabase DTOs.
 
@@ -305,8 +309,8 @@ Version 1 is complete when all of the following are demonstrated:
 
 1. A new installation can sign into the private account and complete nutrition-target onboarding.
 2. Given the same documented inputs, target calculations produce deterministic tested outputs and can be manually adjusted before saving.
-3. The user can create a raw or cooked food, enter nutrients per 100 g, favorite it, and find it again.
-4. Entering a weighed portion immediately updates consumed totals; entering it as planned updates only the forecast.
+3. The user can create a raw or cooked food, enter nutrients per 100 g, add an image, favorite it, and find it again.
+4. The user can select an existing food with its image, enter a weighed portion, preview automatically calculated nutrition, and immediately update consumed totals; entering it as planned updates only the forecast.
 5. A planned portion can be marked consumed, edited, skipped, or undone without creating duplicate intake.
 6. Editing a food does not alter any earlier daily totals.
 7. Logging works in airplane mode, clearly indicates pending changes, and synchronizes them exactly once after reconnection.

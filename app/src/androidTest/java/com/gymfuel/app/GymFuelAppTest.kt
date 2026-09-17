@@ -3,22 +3,28 @@ package com.gymfuel.app
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import org.junit.Rule
 import org.junit.Test
 
 class GymFuelAppTest {
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createAndroidComposeRule<MainActivity>()
+
+    private fun showApp() {
+        composeRule.waitForIdle()
+    }
 
     @Test
     fun bottomNavigation_exposesLabelsAndSelection() {
-        composeRule.setContent {
-            GymFuelApp()
-        }
+        showApp()
 
         composeRule.onNode(hasText("Today") and hasClickAction())
             .assertIsDisplayed()
@@ -35,29 +41,72 @@ class GymFuelAppTest {
 
     @Test
     fun foodsScreen_addFoodOpensFoodEditor() {
-        composeRule.setContent {
-            GymFuelApp()
-        }
+        showApp()
 
         composeRule.onNode(hasText("Foods") and hasClickAction()).performClick()
-        composeRule.onNodeWithText("Add food").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("Add custom food").assertIsDisplayed().performClick()
 
         composeRule.onNodeWithText("Create food").assertIsDisplayed()
         composeRule.onNodeWithText("Food name").assertIsDisplayed()
         composeRule.onNodeWithText("Calories").assertIsDisplayed()
-        composeRule.onNodeWithText("Protein").assertIsDisplayed()
-        composeRule.onNodeWithText("Carbohydrates").assertIsDisplayed()
+        composeRule.onNodeWithText("Protein").assertExists()
+        composeRule.onNodeWithText("Carbohydrates").assertExists()
         composeRule.onNodeWithText("Fat").assertExists()
     }
 
     @Test
     fun todayScreen_logFoodOpensFirstFoodEditor() {
-        composeRule.setContent {
-            GymFuelApp()
-        }
+        showApp()
 
         composeRule.onNodeWithText("Log food").assertIsDisplayed().performClick()
 
-        composeRule.onNodeWithText("Create food").assertIsDisplayed()
+        composeRule.onNodeWithText("Choose a food").assertIsDisplayed()
+        composeRule.onNode(hasText("Chicken breast") and hasClickAction()).assertIsDisplayed()
+    }
+
+    @Test
+    fun loggingLibraryFood_calculatesMacrosAndAddsConsumedEntry() {
+        showApp()
+        composeRule.onNodeWithText("Log food").performClick()
+        composeRule.onNode(hasText("Chicken breast") and hasClickAction()).performClick()
+
+        composeRule.onNodeWithText(
+            "165 kcal · 31 g protein · 0 g carbs · 3.6 g fat",
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText("Add to today").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("165 kcal").assertExists()
+        composeRule.onNodeWithText("SYNC PENDING").assertIsDisplayed()
+    }
+
+    @Test
+    fun foodLibrary_showsSeedFoodsWithNutrition() {
+        showApp()
+
+        composeRule.onNode(hasText("Foods") and hasClickAction()).performClick()
+
+        composeRule.onNodeWithText("Chicken breast").assertIsDisplayed()
+        composeRule.onNodeWithText("31 g protein", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun customFood_canBeOpenedInPrefilledEditSheet() {
+        val foodName = "Editable test beef"
+        showApp()
+        composeRule.onNode(hasText("Foods") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("Add custom food").performClick()
+        composeRule.onNodeWithText("Food name").performTextInput(foodName)
+        composeRule.onNodeWithText("Calories").performTextInput("200")
+        composeRule.onNodeWithText("Protein").performTextInput("25")
+        composeRule.onNodeWithText("Carbohydrates").performTextInput("0")
+        composeRule.onNodeWithText("Fat").performTextInput("10")
+        composeRule.onNodeWithText("Save food").performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Edit $foodName").performClick()
+        composeRule.onNodeWithText("Edit food").assertIsDisplayed()
+        composeRule.onNode(hasText(foodName) and hasSetTextAction()).assertIsDisplayed()
+        composeRule.onNodeWithText("Save changes").assertExists()
     }
 }
