@@ -36,6 +36,7 @@ fun TodayScreen(
     nutrition: DailyNutrition,
     target: NutritionTarget?,
     entries: List<FoodEntry>,
+    waterLiters: java.math.BigDecimal = java.math.BigDecimal.ZERO,
     date: LocalDate = LocalDate.now(),
     pendingSyncCount: Int = 0,
     failedSyncCount: Int = 0,
@@ -61,28 +62,24 @@ fun TodayScreen(
                 modifier = Modifier.padding(top = GymFuelSpacing.xLarge),
             )
         }
-        item { CalorieSummary(nutrition, target) }
-        item { MacroSummary(nutrition, target) }
-        if (entries.isEmpty()) item { EmptyLogState() }
-        else items(entries.size, key = { entries[it].id }) { index -> LoggedFoodRow(entries[index], onUpdateEntryStatus) }
         item {
             Button(
                 onClick = onLogFood,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = null)
-                Text(
-                    text = "Log food",
-                    modifier = Modifier.padding(start = GymFuelSpacing.small),
-                )
+                Text(text = "Log food", modifier = Modifier.padding(start = GymFuelSpacing.small))
             }
         }
+        item { CalorieSummary(nutrition, target) }
+        item { MacroSummary(nutrition, target) }
+        item { HydrationSummary(waterLiters, target?.waterLiters) }
+        if (entries.isEmpty()) item { EmptyLogState() }
+        else items(entries.size, key = { entries[it].id }) { index -> LoggedFoodRow(entries[index], onUpdateEntryStatus) }
         item { Spacer(modifier = Modifier.height(GymFuelSpacing.small)) }
     }
 }

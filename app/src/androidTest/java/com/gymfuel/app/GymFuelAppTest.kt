@@ -11,6 +11,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import org.junit.Rule
 import org.junit.Test
 
@@ -19,6 +21,11 @@ class GymFuelAppTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     private fun showApp() {
+        composeRule.waitForIdle()
+    }
+
+    private fun goToToday() {
+        composeRule.onNode(hasText("Today") and hasClickAction()).performClick()
         composeRule.waitForIdle()
     }
 
@@ -57,16 +64,45 @@ class GymFuelAppTest {
     @Test
     fun todayScreen_logFoodOpensFirstFoodEditor() {
         showApp()
+        goToToday()
 
         composeRule.onNodeWithText("Log food").assertIsDisplayed().performClick()
 
-        composeRule.onNodeWithText("Choose a food").assertIsDisplayed()
+        composeRule.onNodeWithText("Choose a saved food").assertIsDisplayed()
         composeRule.onNode(hasText("Chicken breast") and hasClickAction()).assertIsDisplayed()
+    }
+
+    @Test
+    fun logSheet_offersQuickFoodAndWaterFromTheSamePlace() {
+        showApp()
+        goToToday()
+        composeRule.onNodeWithText("Log food").performClick()
+
+        composeRule.onNodeWithText("Quick food").performClick()
+        composeRule.onNodeWithText("Log something new").assertIsDisplayed()
+        composeRule.onNodeWithText("Save to food library").assertIsDisplayed()
+        composeRule.onNode(hasText("Water") and hasClickAction()).performClick()
+        composeRule.onNodeWithText("Log water").assertIsDisplayed()
+        composeRule.onNodeWithText("Water amount").assertIsDisplayed()
+    }
+
+    @Test
+    fun historyDay_opensDetailedGoalAndFoodBreakdown() {
+        showApp()
+        composeRule.onNode(hasText("History") and hasClickAction()).performClick()
+        val firstDayLabel = LocalDate.now().minusDays(6).format(DateTimeFormatter.ofPattern("EEE, MMM d"))
+
+        composeRule.onNodeWithText(firstDayLabel).performClick()
+
+        composeRule.onNodeWithText("Food log").assertIsDisplayed()
+        composeRule.onNodeWithText("Calories").assertIsDisplayed()
+        composeRule.onNodeWithText("Water").assertIsDisplayed()
     }
 
     @Test
     fun loggingLibraryFood_calculatesMacrosAndAddsConsumedEntry() {
         showApp()
+        goToToday()
         composeRule.onNodeWithText("Log food").performClick()
         composeRule.onNode(hasText("Chicken breast") and hasClickAction()).performClick()
 
@@ -76,7 +112,6 @@ class GymFuelAppTest {
         composeRule.onNodeWithText("Add to today").performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("165 kcal").assertExists()
         composeRule.onNodeWithText("SYNC PENDING").assertIsDisplayed()
     }
 

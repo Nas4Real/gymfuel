@@ -105,6 +105,8 @@ fun GymFuelApp(repository: FoodRepository? = null, supabase: SupabaseGateway? = 
         val entriesFlow = remember(repository, today) { repository?.entriesFor(today) ?: flowOf(emptyList()) }
         val targetFlow = remember(repository, today) { repository?.targetFor(today) ?: flowOf(null) }
         val weekEntriesFlow = remember(repository, today) { repository?.entriesBetween(today.minusDays(6), today) ?: flowOf(emptyList()) }
+        val waterEntriesFlow = remember(repository, today) { repository?.waterEntriesFor(today) ?: flowOf(emptyList()) }
+        val weekWaterEntriesFlow = remember(repository, today) { repository?.waterEntriesBetween(today.minusDays(6), today) ?: flowOf(emptyList()) }
         val syncHealthFlow = remember(repository) {
             repository?.syncHealth ?: flowOf(FoodRepository.SyncHealth(pendingCount = 0, failedCount = 0))
         }
@@ -112,6 +114,8 @@ fun GymFuelApp(repository: FoodRepository? = null, supabase: SupabaseGateway? = 
         val entries by entriesFlow.collectAsState(initial = emptyList())
         val target by targetFlow.collectAsState(initial = null)
         val weekEntries by weekEntriesFlow.collectAsState(initial = emptyList())
+        val waterEntries by waterEntriesFlow.collectAsState(initial = emptyList())
+        val weekWaterEntries by weekWaterEntriesFlow.collectAsState(initial = emptyList())
         val syncHealth by syncHealthFlow.collectAsState(initial = FoodRepository.SyncHealth(0, 0))
         val dailyNutrition = DailyNutrition.from(entries)
 
@@ -135,6 +139,7 @@ fun GymFuelApp(repository: FoodRepository? = null, supabase: SupabaseGateway? = 
                     nutrition = dailyNutrition,
                     target = target?.nutrition,
                     entries = entries,
+                    waterLiters = waterEntries.sumOf { it.liters },
                     date = today,
                     pendingSyncCount = syncHealth.pendingCount,
                     failedSyncCount = syncHealth.failedCount,
@@ -154,7 +159,13 @@ fun GymFuelApp(repository: FoodRepository? = null, supabase: SupabaseGateway? = 
                     },
                     modifier = screenModifier,
                 )
-                AppDestination.History -> HistoryScreen(WeeklyNutrition.from(weekEntries, today), target?.nutrition, screenModifier)
+                AppDestination.History -> HistoryScreen(
+                    week = WeeklyNutrition.from(weekEntries, today),
+                    target = target?.nutrition,
+                    entries = weekEntries,
+                    waterEntries = weekWaterEntries,
+                    modifier = screenModifier,
+                )
                 AppDestination.Settings -> SettingsScreen(
                     gateway = supabase,
                     target = target,
@@ -187,9 +198,21 @@ fun GymFuelApp(repository: FoodRepository? = null, supabase: SupabaseGateway? = 
             LogFoodSheet(
                 foods = foods,
                 onDismiss = { showFoodLogger = false },
-                onLog = { food, grams, status ->
+                onLogSaved = { food, grams, status ->
                     scope.launch {
                         repository?.logFood(food.id, grams, status)
+                        showFoodLogger = false
+                    }
+                },
+                onLogQuick = { name, nutrition, grams, status, save ->
+                    scope.launch {
+                        repository?.logAdHocFood(name, com.gymfuel.app.core.model.Preparation.Custom, nutrition, grams, status, save)
+                        showFoodLogger = false
+                    }
+                },
+                onLogWater = { liters ->
+                    scope.launch {
+                        repository?.logWater(liters)
                         showFoodLogger = false
                     }
                 },

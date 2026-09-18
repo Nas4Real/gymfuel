@@ -94,36 +94,57 @@ internal fun MacroSummary(nutrition: DailyNutrition, target: NutritionTarget?) {
 }
 
 @Composable
+internal fun HydrationSummary(waterLiters: BigDecimal, target: BigDecimal?) {
+    val progress = progressOf(waterLiters, target)
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.fillMaxWidth().padding(GymFuelSpacing.large), verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.small)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Water", style = MaterialTheme.typography.titleMedium)
+                Text("${waterLiters.display()}${target?.let { " / ${it.display()}" } ?: ""} L", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.titleSmall)
+            }
+            LinearProgressIndicator(
+                progress = { progress }, modifier = Modifier.fillMaxWidth().height(8.dp),
+                color = MaterialTheme.colorScheme.tertiary, trackColor = MaterialTheme.colorScheme.outline,
+            )
+            Text(if (target == null) "Set a body profile to calculate your hydration goal." else if (waterLiters >= target) "Hydration goal reached" else "${(target - waterLiters).max(BigDecimal.ZERO).display()} L remaining", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
 private fun MacroRow(
     label: String,
     value: BigDecimal,
     target: BigDecimal?,
     color: Color,
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 14.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.small),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(GymFuelSpacing.small),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Surface(
-                modifier = Modifier.height(20.dp),
-                color = color,
-                shape = MaterialTheme.shapes.small,
-            ) {
-                Spacer(modifier = Modifier.padding(horizontal = 2.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(GymFuelSpacing.small), verticalAlignment = Alignment.CenterVertically) {
+                Surface(modifier = Modifier.height(20.dp), color = color, shape = MaterialTheme.shapes.small) {
+                    Spacer(modifier = Modifier.padding(horizontal = 2.dp))
+                }
+                Text(text = label, style = MaterialTheme.typography.bodyLarge)
             }
-            Text(text = label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = "${value.display()}${target?.let { " / ${it.display()}" } ?: ""} g",
+                color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.titleSmall,
+            )
         }
-        Text(
-            text = "${value.stripTrailingZeros().toPlainString()}${target?.let { " / ${it.stripTrailingZeros().toPlainString()}" } ?: ""} g",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.titleSmall,
+        LinearProgressIndicator(
+            progress = { progressOf(value, target) }, modifier = Modifier.fillMaxWidth().height(6.dp),
+            color = color, trackColor = MaterialTheme.colorScheme.outline,
         )
     }
 }
+
+private fun progressOf(value: BigDecimal, target: BigDecimal?) =
+    if (target == null || target.signum() == 0) 0f
+    else value.divide(target, 4, java.math.RoundingMode.HALF_UP).toFloat().coerceIn(0f, 1f)
+
+private fun BigDecimal.display() = stripTrailingZeros().toPlainString()
