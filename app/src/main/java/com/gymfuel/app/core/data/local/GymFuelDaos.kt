@@ -45,6 +45,24 @@ interface FoodEntryDao {
 }
 
 @Dao
+interface WaterEntryDao {
+    @Query("SELECT * FROM water_entries WHERE localDateEpochDay = :epochDay AND deletedAtEpochMillis IS NULL ORDER BY loggedAtEpochMillis DESC")
+    fun observeForDate(epochDay: Long): Flow<List<WaterEntryEntity>>
+
+    @Query("SELECT * FROM water_entries WHERE localDateEpochDay BETWEEN :startEpochDay AND :endEpochDay AND deletedAtEpochMillis IS NULL ORDER BY localDateEpochDay, loggedAtEpochMillis")
+    fun observeBetween(startEpochDay: Long, endEpochDay: Long): Flow<List<WaterEntryEntity>>
+
+    @Query("SELECT * FROM water_entries WHERE id = :id")
+    suspend fun find(id: String): WaterEntryEntity?
+
+    @Upsert
+    suspend fun upsert(entry: WaterEntryEntity)
+
+    @Query("UPDATE water_entries SET syncState = :state WHERE id = :id")
+    suspend fun updateSyncState(id: String, state: String)
+}
+
+@Dao
 interface OutboxDao {
     @Query("SELECT COUNT(*) FROM sync_outbox")
     fun observeCount(): Flow<Int>

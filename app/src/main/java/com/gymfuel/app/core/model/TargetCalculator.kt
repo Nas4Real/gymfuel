@@ -28,6 +28,7 @@ data class NutritionTarget(
     val proteinGrams: BigDecimal,
     val carbohydrateGrams: BigDecimal,
     val fatGrams: BigDecimal,
+    val waterLiters: BigDecimal = BigDecimal("2.5"),
 )
 
 data class EffectiveNutritionTarget(
@@ -48,6 +49,7 @@ object TargetCalculator {
     private val FAT_PER_KG = BigDecimal("0.8")
     private val PROTEIN_OR_CARB_KCAL = BigDecimal("4")
     private val FAT_KCAL = BigDecimal("9")
+    private val WATER_LITERS_PER_KG = BigDecimal("0.035")
 
     fun calculate(profile: TargetProfile): NutritionTarget {
         val sexOffset = if (profile.sex == FormulaSex.Male) MALE_OFFSET else FEMALE_OFFSET
@@ -59,6 +61,7 @@ object TargetCalculator {
         val fat = (profile.weightKilograms * FAT_PER_KG).setScale(1, RoundingMode.HALF_UP)
         val remainingCalories = (calories - protein * PROTEIN_OR_CARB_KCAL - fat * FAT_KCAL).max(BigDecimal.ZERO)
         val carbohydrates = remainingCalories.divide(PROTEIN_OR_CARB_KCAL, 1, RoundingMode.HALF_UP)
-        return NutritionTarget(calories, protein, carbohydrates, fat)
+        val water = (profile.weightKilograms * WATER_LITERS_PER_KG).setScale(1, RoundingMode.HALF_UP)
+        return NutritionTarget(calories, protein, carbohydrates, fat, water)
     }
 }

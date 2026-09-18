@@ -11,6 +11,7 @@ import com.gymfuel.app.core.model.NutritionTarget
 import com.gymfuel.app.core.model.Preparation
 import com.gymfuel.app.core.model.SyncState
 import com.gymfuel.app.core.model.TargetProfile
+import com.gymfuel.app.core.model.WaterEntry
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import java.math.BigDecimal
@@ -85,12 +86,25 @@ class SyncEngine(
                             proteinGrams = target.nutrition.proteinGrams.toPlainString(),
                             carbohydrateGrams = target.nutrition.carbohydrateGrams.toPlainString(),
                             fatGrams = target.nutrition.fatGrams.toPlainString(),
+                            waterLiters = target.nutrition.waterLiters.toPlainString(),
                             ageYears = target.profile?.ageYears,
                             formulaSex = target.profile?.sex?.name?.lowercase(),
                             heightCentimeters = target.profile?.heightCentimeters?.toPlainString(),
                             weightKilograms = target.profile?.weightKilograms?.toPlainString(),
                             activityMultiplier = target.profile?.activityMultiplier?.toPlainString(),
                             surplusCalories = target.profile?.surplusCalories?.toPlainString(),
+                        ),
+                    ) { onConflict = "id" }
+                }
+                is FoodRepository.PendingMutation.Water -> {
+                    val water = mutation.value
+                    client.from("water_entries").upsert(
+                        RemoteWaterEntryRow(
+                            id = water.id,
+                            userId = userId,
+                            localDate = water.localDate.toString(),
+                            liters = water.liters.toPlainString(),
+                            loggedAt = water.loggedAt.toString(),
                         ),
                     ) { onConflict = "id" }
                 }
@@ -147,7 +161,7 @@ class SyncEngine(
                 EffectiveNutritionTarget(
                     id = row.id,
                     effectiveFrom = LocalDate.parse(row.effectiveFrom),
-                    nutrition = NutritionTarget(BigDecimal(row.calories), BigDecimal(row.proteinGrams), BigDecimal(row.carbohydrateGrams), BigDecimal(row.fatGrams)),
+                    nutrition = NutritionTarget(BigDecimal(row.calories), BigDecimal(row.proteinGrams), BigDecimal(row.carbohydrateGrams), BigDecimal(row.fatGrams), BigDecimal(row.waterLiters)),
                     profile = if (
                         row.ageYears != null && row.formulaSex != null && row.heightCentimeters != null &&
                         row.weightKilograms != null && row.activityMultiplier != null && row.surplusCalories != null
@@ -166,6 +180,20 @@ class SyncEngine(
                     syncState = SyncState.Synced,
                 ),
                 updatedAt = Instant.parse(requireNotNull(row.updatedAt)),
+                revision = row.revision,
+            )
+        }
+        client.from("water_entries").select().decodeList<RemoteWaterEntryRow>().forEach { row ->
+            repository.mergeRemoteWater(
+                WaterEntry(
+                    id = row.id,
+                    localDate = LocalDate.parse(row.localDate),
+                    liters = BigDecimal(row.liters),
+                    loggedAt = Instant.parse(row.loggedAt),
+                    syncState = SyncState.Synced,
+                ),
+                updatedAt = Instant.parse(requireNotNull(row.updatedAt)),
+                deletedAt = row.deletedAt?.let(Instant::parse),
                 revision = row.revision,
             )
         }

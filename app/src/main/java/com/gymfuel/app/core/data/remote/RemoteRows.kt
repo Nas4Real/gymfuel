@@ -53,6 +53,7 @@ data class RemoteNutritionTargetRow(
     @SerialName("protein_grams") val proteinGrams: String,
     @SerialName("carbohydrate_grams") val carbohydrateGrams: String,
     @SerialName("fat_grams") val fatGrams: String,
+    @SerialName("water_liters") val waterLiters: String = "2.5",
     @SerialName("age_years") val ageYears: Int? = null,
     @SerialName("formula_sex") val formulaSex: String? = null,
     @SerialName("height_centimeters") val heightCentimeters: String? = null,
@@ -60,5 +61,17 @@ data class RemoteNutritionTargetRow(
     @SerialName("activity_multiplier") val activityMultiplier: String? = null,
     @SerialName("surplus_calories") val surplusCalories: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
+    val revision: Long = 1,
+)
+
+@Serializable
+data class RemoteWaterEntryRow(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    @SerialName("local_date") val localDate: String,
+    val liters: String,
+    @SerialName("logged_at") val loggedAt: String,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("deleted_at") val deletedAt: String? = null,
     val revision: Long = 1,
 )

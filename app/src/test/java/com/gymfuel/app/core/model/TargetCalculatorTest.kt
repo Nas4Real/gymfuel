@@ -22,6 +22,7 @@ class TargetCalculatorTest {
         assertEquals(BigDecimal("144.0"), target.proteinGrams)
         assertEquals(BigDecimal("464.3"), target.carbohydrateGrams)
         assertEquals(BigDecimal("64.0"), target.fatGrams)
+        assertEquals(BigDecimal("2.8"), target.waterLiters)
     }
 
     @Test(expected = IllegalArgumentException::class)

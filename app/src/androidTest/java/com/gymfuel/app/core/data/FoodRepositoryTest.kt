@@ -126,4 +126,61 @@ class FoodRepositoryTest {
         assertEquals(com.gymfuel.app.core.model.SyncState.Pending, repository.foods.first().single().syncState)
         assertEquals("Version two", repository.foods.first().single().name)
     }
+
+    @Test
+    fun quickFood_canLogSnapshotWithoutSavingOrSaveForReuse() = runBlocking {
+        val nutrition = NutritionPer100g(
+            BigDecimal("89"), BigDecimal("1.1"), BigDecimal("22.8"), BigDecimal("0.3"),
+        )
+
+        val historyOnly = repository.logAdHocFood(
+            name = "Banana",
+            preparation = Preparation.Raw,
+            nutrition = nutrition,
+            quantityGrams = BigDecimal("120"),
+            status = EntryStatus.Consumed,
+            saveToLibrary = false,
+        )
+        val reusable = repository.logAdHocFood(
+            name = "Homemade shake",
+            preparation = Preparation.Custom,
+            nutrition = nutrition,
+            quantityGrams = BigDecimal("300"),
+            status = EntryStatus.Consumed,
+            saveToLibrary = true,
+        )
+
+        assertEquals(null, historyOnly.entry.foodId)
+        assertEquals("Banana", historyOnly.entry.foodNameSnapshot)
+        assertEquals(null, historyOnly.savedFood)
+        assertEquals(reusable.savedFood?.id, reusable.entry.foodId)
+        assertEquals(1, repository.foods.first().size)
+        assertEquals(2, repository.entriesFor(java.time.LocalDate.now()).first().size)
+    }
+
+    @Test
+    fun waterLog_aggregatesLitersForDateAndQueuesSync() = runBlocking {
+        repository.logWater(BigDecimal("0.50"))
+        repository.logWater(BigDecimal("0.75"))
+
+        val entries = repository.waterEntriesFor(java.time.LocalDate.now()).first()
+        assertEquals(BigDecimal("1.25"), entries.sumOf { it.liters })
+        assertEquals(2, repository.pendingMutations().size)
+    }
+
+    @Test
+    fun savedQuickFood_queuesFoodBeforeItsReferencingEntry() = runBlocking {
+        repository.logAdHocFood(
+            name = "Dependency ordered shake",
+            preparation = Preparation.Custom,
+            nutrition = NutritionPer100g(BigDecimal("100"), BigDecimal("10"), BigDecimal("10"), BigDecimal("2")),
+            quantityGrams = BigDecimal("250"),
+            status = EntryStatus.Consumed,
+            saveToLibrary = true,
+        )
+
+        val pending = repository.pendingMutations()
+        assertTrue(pending[0] is FoodRepository.PendingMutation.Food)
+        assertTrue(pending[1] is FoodRepository.PendingMutation.Entry)
+    }
 }

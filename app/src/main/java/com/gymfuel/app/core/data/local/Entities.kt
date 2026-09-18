@@ -1,6 +1,7 @@
 package com.gymfuel.app.core.data.local
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -50,6 +51,19 @@ data class FoodEntryEntity(
     val syncState: String,
 )
 
+@Entity(tableName = "water_entries", indices = [Index("localDateEpochDay"), Index("updatedAtEpochMillis")])
+data class WaterEntryEntity(
+    @PrimaryKey val id: String,
+    val ownerId: String?,
+    val localDateEpochDay: Long,
+    val liters: String,
+    val loggedAtEpochMillis: Long,
+    val updatedAtEpochMillis: Long,
+    val deletedAtEpochMillis: Long?,
+    val revision: Long,
+    val syncState: String,
+)
+
 @Entity(tableName = "sync_outbox", indices = [Index(value = ["entityType", "entityId"], unique = true)])
 data class OutboxEntity(
     @PrimaryKey val id: String,
@@ -69,6 +83,7 @@ data class NutritionTargetEntity(
     val proteinGrams: String,
     val carbohydrateGrams: String,
     val fatGrams: String,
+    @ColumnInfo(defaultValue = "'2.5'") val waterLiters: String,
     val ageYears: Int?,
     val formulaSex: String?,
     val heightCentimeters: String?,

@@ -6,6 +6,7 @@ import com.gymfuel.app.core.data.local.FoodEntryEntity
 import com.gymfuel.app.core.data.local.GymFuelDatabase
 import com.gymfuel.app.core.data.local.OutboxEntity
 import com.gymfuel.app.core.data.local.NutritionTargetEntity
+import com.gymfuel.app.core.data.local.WaterEntryEntity
 import com.gymfuel.app.core.model.EntryStatus
 import com.gymfuel.app.core.model.Food
 import com.gymfuel.app.core.model.FoodEntry
@@ -17,6 +18,7 @@ import com.gymfuel.app.core.model.FormulaSex
 import com.gymfuel.app.core.model.NutritionTarget
 import com.gymfuel.app.core.model.TargetCalculator
 import com.gymfuel.app.core.model.TargetProfile
+import com.gymfuel.app.core.model.WaterEntry
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -30,6 +32,7 @@ class FoodRepository(
     private val onMutation: () -> Unit = {},
 ) {
     data class SyncHealth(val pendingCount: Int, val failedCount: Int)
+    data class AdHocLogResult(val savedFood: Food?, val entry: FoodEntry)
 
     val foods: Flow<List<Food>> = database.foodDao().observeAll().map { rows -> rows.map { it.toDomain() } }
 
@@ -38,6 +41,12 @@ class FoodRepository(
 
     fun entriesBetween(start: LocalDate, end: LocalDate): Flow<List<FoodEntry>> =
         database.foodEntryDao().observeBetween(start.toEpochDay(), end.toEpochDay()).map { rows -> rows.map { it.toDomain() } }
+
+    fun waterEntriesFor(date: LocalDate): Flow<List<WaterEntry>> =
+        database.waterEntryDao().observeForDate(date.toEpochDay()).map { rows -> rows.map { it.toDomain() } }
+
+    fun waterEntriesBetween(start: LocalDate, end: LocalDate): Flow<List<WaterEntry>> =
+        database.waterEntryDao().observeBetween(start.toEpochDay(), end.toEpochDay()).map { rows -> rows.map { it.toDomain() } }
 
     fun targetFor(date: LocalDate): Flow<EffectiveNutritionTarget?> =
         database.nutritionTargetDao().observeCurrent(date.toEpochDay()).map { it?.toDomain() }
@@ -120,6 +129,64 @@ class FoodRepository(
         return entry
     }
 
+    suspend fun logAdHocFood(
+        name: String,
+        preparation: Preparation,
+        nutrition: NutritionPer100g,
+        quantityGrams: BigDecimal,
+        status: EntryStatus,
+        saveToLibrary: Boolean,
+        date: LocalDate = LocalDate.now(),
+    ): AdHocLogResult {
+        val normalizedName = name.trim()
+        require(normalizedName.isNotEmpty()) { "Food name is required" }
+        val now = System.currentTimeMillis()
+        val savedFood = if (saveToLibrary) Food(
+            id = UUID.randomUUID().toString(),
+            name = normalizedName,
+            preparation = preparation,
+            nutritionPer100g = nutrition,
+        ) else null
+        val entry = FoodEntry(
+            id = UUID.randomUUID().toString(),
+            foodId = savedFood?.id,
+            localDate = date,
+            quantityGrams = quantityGrams,
+            status = status,
+            consumedAt = if (status == EntryStatus.Consumed) Instant.now() else null,
+            foodNameSnapshot = normalizedName,
+            preparationSnapshot = preparation,
+            imageReferenceSnapshot = null,
+            nutritionPer100gSnapshot = nutrition,
+        )
+        database.withTransaction {
+            if (savedFood != null) {
+                database.foodDao().upsert(savedFood.toEntity(isTemplate = false, updatedAt = now))
+                enqueueMutation("food", savedFood.id, now)
+            }
+            database.foodEntryDao().upsert(entry.toEntity(now))
+            enqueueMutation("food_entry", entry.id, if (savedFood == null) now else now + 1)
+        }
+        onMutation()
+        return AdHocLogResult(savedFood, entry)
+    }
+
+    suspend fun logWater(liters: BigDecimal, date: LocalDate = LocalDate.now()): WaterEntry {
+        val now = System.currentTimeMillis()
+        val entry = WaterEntry(
+            id = UUID.randomUUID().toString(),
+            localDate = date,
+            liters = liters,
+            loggedAt = Instant.ofEpochMilli(now),
+        )
+        database.withTransaction {
+            database.waterEntryDao().upsert(entry.toEntity(now))
+            enqueueMutation("water_entry", entry.id, now)
+        }
+        onMutation()
+        return entry
+    }
+
     suspend fun saveCalculatedTarget(profile: TargetProfile): EffectiveNutritionTarget {
         val today = LocalDate.now()
         val existingId = database.nutritionTargetDao().findForDate(today.toEpochDay())?.id
@@ -158,6 +225,7 @@ class FoodRepository(
             when (item.entityType) {
                 "food" -> database.foodDao().find(item.entityId)?.toDomain()?.let { PendingMutation.Food(item.id, item.createdAtEpochMillis, it) }
                 "food_entry" -> database.foodEntryDao().find(item.entityId)?.toDomain()?.let { PendingMutation.Entry(item.id, item.createdAtEpochMillis, it) }
+                "water_entry" -> database.waterEntryDao().find(item.entityId)?.toDomain()?.let { PendingMutation.Water(item.id, item.createdAtEpochMillis, it) }
                 "nutrition_target" -> database.nutritionTargetDao().find(item.entityId)?.toDomain()?.let { PendingMutation.Target(item.id, item.createdAtEpochMillis, it) }
                 else -> null
             }
@@ -171,6 +239,7 @@ class FoodRepository(
             when (mutation) {
                 is PendingMutation.Food -> database.foodDao().updateSyncState(mutation.value.id, SyncState.Synced.name)
                 is PendingMutation.Entry -> database.foodEntryDao().updateSyncState(mutation.value.id, SyncState.Synced.name)
+                is PendingMutation.Water -> database.waterEntryDao().updateSyncState(mutation.value.id, SyncState.Synced.name)
                 is PendingMutation.Target -> database.nutritionTargetDao().updateSyncState(mutation.value.id, SyncState.Synced.name)
             }
         }
@@ -184,6 +253,7 @@ class FoodRepository(
             when (mutation) {
                 is PendingMutation.Food -> database.foodDao().updateSyncState(mutation.value.id, SyncState.Failed.name)
                 is PendingMutation.Entry -> database.foodEntryDao().updateSyncState(mutation.value.id, SyncState.Failed.name)
+                is PendingMutation.Water -> database.waterEntryDao().updateSyncState(mutation.value.id, SyncState.Failed.name)
                 is PendingMutation.Target -> database.nutritionTargetDao().updateSyncState(mutation.value.id, SyncState.Failed.name)
             }
         }
@@ -225,6 +295,20 @@ class FoodRepository(
         }
     }
 
+    suspend fun mergeRemoteWater(entry: WaterEntry, updatedAt: Instant, deletedAt: Instant?, revision: Long) {
+        database.withTransaction {
+            val local = database.waterEntryDao().find(entry.id)
+            if (local != null && local.syncState != SyncState.Synced.name) return@withTransaction
+            database.waterEntryDao().upsert(
+                entry.toEntity(updatedAt.toEpochMilli()).copy(
+                    deletedAtEpochMillis = deletedAt?.toEpochMilli(),
+                    revision = revision,
+                    syncState = SyncState.Synced.name,
+                ),
+            )
+        }
+    }
+
     private suspend fun enqueueMutation(entityType: String, entityId: String, timestamp: Long) {
         val id = outboxId(entityType, entityId)
         val previousTimestamp = database.outboxDao().find(id)?.createdAtEpochMillis
@@ -237,6 +321,7 @@ class FoodRepository(
         val createdAtEpochMillis: Long
         data class Food(override val outboxId: String, override val createdAtEpochMillis: Long, val value: com.gymfuel.app.core.model.Food) : PendingMutation
         data class Entry(override val outboxId: String, override val createdAtEpochMillis: Long, val value: FoodEntry) : PendingMutation
+        data class Water(override val outboxId: String, override val createdAtEpochMillis: Long, val value: WaterEntry) : PendingMutation
         data class Target(override val outboxId: String, override val createdAtEpochMillis: Long, val value: EffectiveNutritionTarget) : PendingMutation
     }
 }
@@ -250,6 +335,7 @@ private fun EffectiveNutritionTarget.toEntity(updatedAt: Long) = NutritionTarget
     proteinGrams = nutrition.proteinGrams.toPlainString(),
     carbohydrateGrams = nutrition.carbohydrateGrams.toPlainString(),
     fatGrams = nutrition.fatGrams.toPlainString(),
+    waterLiters = nutrition.waterLiters.toPlainString(),
     ageYears = profile?.ageYears,
     formulaSex = profile?.sex?.name,
     heightCentimeters = profile?.heightCentimeters?.toPlainString(),
@@ -264,7 +350,7 @@ private fun EffectiveNutritionTarget.toEntity(updatedAt: Long) = NutritionTarget
 private fun NutritionTargetEntity.toDomain() = EffectiveNutritionTarget(
     id = id,
     effectiveFrom = LocalDate.ofEpochDay(effectiveDateEpochDay),
-    nutrition = NutritionTarget(BigDecimal(calories), BigDecimal(proteinGrams), BigDecimal(carbohydrateGrams), BigDecimal(fatGrams)),
+    nutrition = NutritionTarget(BigDecimal(calories), BigDecimal(proteinGrams), BigDecimal(carbohydrateGrams), BigDecimal(fatGrams), BigDecimal(waterLiters)),
     profile = if (ageYears != null && formulaSex != null && heightCentimeters != null && weightKilograms != null && activityMultiplier != null && surplusCalories != null) {
         TargetProfile(ageYears, FormulaSex.valueOf(formulaSex), BigDecimal(heightCentimeters), BigDecimal(weightKilograms), BigDecimal(activityMultiplier), BigDecimal(surplusCalories))
     } else null,
@@ -298,4 +384,24 @@ private fun FoodEntryEntity.toDomain() = FoodEntry(
     foodNameSnapshot, Preparation.entries.first { it.wireValue == preparationSnapshot }, imageReferenceSnapshot,
     NutritionPer100g(BigDecimal(caloriesPer100gSnapshot), BigDecimal(proteinPer100gSnapshot), BigDecimal(carbohydratePer100gSnapshot), BigDecimal(fatPer100gSnapshot)),
     SyncState.valueOf(syncState),
+)
+
+private fun WaterEntry.toEntity(updatedAt: Long) = WaterEntryEntity(
+    id = id,
+    ownerId = null,
+    localDateEpochDay = localDate.toEpochDay(),
+    liters = liters.toPlainString(),
+    loggedAtEpochMillis = loggedAt.toEpochMilli(),
+    updatedAtEpochMillis = updatedAt,
+    deletedAtEpochMillis = null,
+    revision = 1,
+    syncState = syncState.name,
+)
+
+private fun WaterEntryEntity.toDomain() = WaterEntry(
+    id = id,
+    localDate = LocalDate.ofEpochDay(localDateEpochDay),
+    liters = BigDecimal(liters),
+    loggedAt = Instant.ofEpochMilli(loggedAtEpochMillis),
+    syncState = SyncState.valueOf(syncState),
 )
