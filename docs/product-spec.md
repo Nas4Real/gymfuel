@@ -101,8 +101,8 @@ Weekly averages and streaks are deferred. The separate History destination is re
 
 ### Visual system and navigation
 
-- Poppins typography on a black foundation (`#000000`), neutral dark card surfaces, and readable light text.
-- Semantic accents: green `#0E6A2A` for protein/actions, gold `#8A6500` for carbohydrates/calories, red `#950101` for fat/errors, blue `#013B95` for hydration.
+- Poppins typography on a near-black blue-tinted foundation (`#05070A`), elevated dark card surfaces, and readable light text.
+- Light blue `#4D8DFF` is the primary dark-theme action, selection, and hydration color. Protein, carbohydrate, and fat retain distinct accessible accents: green `#43C679`, gold `#F0B429`, and red `#FF625F`.
 - Navigation follows the owner's latest screenshot: Home, Foods, and Settings inside one compact pill, with a separate circular `+` on its right. Both are siblings in one row; no floating overlay, center cutout, or overlapping tab hit areas.
 - The destination pill divides available width equally. The action has a fixed touch target; the dock reserves its own content space and Android navigation insets.
 - Reference: [Material navigation guidance](https://m3.material.io/components/navigation-bar/overview). The owner's side-action arrangement is a custom Compose layout using native accessible controls.
