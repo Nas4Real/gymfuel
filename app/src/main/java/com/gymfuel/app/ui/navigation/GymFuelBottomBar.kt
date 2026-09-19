@@ -109,7 +109,7 @@ private fun DestinationItem(
     onClick: () -> Unit,
     modifier: Modifier,
 ) {
-    val contentColor = if (selected) MaterialTheme.colorScheme.onSurface
+    val contentColor = if (selected) MaterialTheme.colorScheme.primary
     else MaterialTheme.colorScheme.onSurfaceVariant
     val icon = if (!selected) destination.icon else when (destination) {
         AppDestination.Home -> Icons.Default.Home

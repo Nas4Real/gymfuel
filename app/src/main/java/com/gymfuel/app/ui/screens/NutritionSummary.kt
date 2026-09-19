@@ -1,5 +1,6 @@
 package com.gymfuel.app.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,11 +37,12 @@ internal fun CalorieSummary(nutrition: DailyNutrition, target: NutritionTarget?)
     val consumed = nutrition.consumed.calories
     val progress = progressOf(consumed, target?.calories)
     val displayValue = target?.calories?.subtract(consumed)?.max(BigDecimal.ZERO) ?: consumed
-    val accent = GymFuelTokens.colors.carbohydrate
+    val accent = MaterialTheme.colorScheme.primary
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(0.dp),
         shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
     ) {
         Row(
             modifier = Modifier
@@ -71,7 +73,7 @@ internal fun CalorieSummary(nutrition: DailyNutrition, target: NutritionTarget?)
                 progress = progress,
                 color = accent,
                 label = if (target == null) "—" else "${(progress * 100).toInt()}%",
-                modifier = Modifier.size(84.dp).semantics {
+                modifier = Modifier.size(76.dp).semantics {
                     contentDescription = "Calories consumed ${consumed.display()}${target?.let { " of ${it.calories.display()}" }.orEmpty()}"
                 },
             )
@@ -126,11 +128,12 @@ private fun MacroCard(
         },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = GymFuelSpacing.medium, vertical = GymFuelSpacing.large),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = GymFuelSpacing.small, vertical = GymFuelSpacing.medium),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.small),
+            verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.xSmall),
         ) {
             Text(
                 text = "${remaining.display()}g",
@@ -148,7 +151,7 @@ private fun MacroCard(
                 maxLines = 1,
                 style = MaterialTheme.typography.labelSmall,
             )
-            ProgressRing(progress, color, if (target != null && value >= target) "✓" else label.take(1), Modifier.size(54.dp))
+            ProgressRing(progress, color, if (target != null && value >= target) "✓" else label.take(1), Modifier.size(48.dp))
         }
     }
 }
@@ -160,9 +163,10 @@ internal fun HydrationSummary(waterLiters: BigDecimal, target: BigDecimal?) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(GymFuelSpacing.large),
+            modifier = Modifier.fillMaxWidth().padding(GymFuelSpacing.medium),
             verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.small),
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -176,7 +180,7 @@ internal fun HydrationSummary(waterLiters: BigDecimal, target: BigDecimal?) {
                 }
                 Text(
                     text = "${waterLiters.display()}${target?.let { " / ${it.display()}" }.orEmpty()} L",
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    color = waterColor,
                     style = MaterialTheme.typography.titleSmall,
                 )
             }

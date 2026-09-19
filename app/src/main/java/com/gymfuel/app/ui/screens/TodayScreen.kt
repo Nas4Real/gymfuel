@@ -1,5 +1,6 @@
 package com.gymfuel.app.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -58,7 +59,7 @@ fun TodayScreen(
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = GymFuelSpacing.page),
         contentPadding = PaddingValues(bottom = GymFuelSpacing.xLarge),
-        verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.large),
+        verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.medium),
     ) {
         item {
             HomeHeader(
@@ -153,25 +154,34 @@ private fun WeekSelector(
                 modifier = Modifier
                     .weight(1f)
                     .height(64.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surface)
+                    .clip(MaterialTheme.shapes.small)
                     .clickable { onDateSelected(date) }
                     .semantics {
                         contentDescription = "Show nutrition for $date"
                         stateDescription = if (selected) "Selected" else "Not selected"
                     },
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
+                verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
             ) {
-                Text(
-                    text = date.dayOfWeek.name.take(1),
-                    color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelSmall,
-                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(
+                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                            shape = CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = date.dayOfWeek.name.take(1),
+                        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
                 Text(
                     text = date.dayOfMonth.toString(),
-                    color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.labelLarge,
+                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium,
                 )
             }
         }
@@ -181,7 +191,11 @@ private fun WeekSelector(
 @Composable
 private fun LoggedFoodCard(entry: FoodEntry, onUpdateStatus: (String, EntryStatus) -> Unit) {
     val totals = entry.nutritionPer100gSnapshot.forQuantity(entry.quantityGrams)
-    Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.medium) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+    ) {
         Column(Modifier.fillMaxWidth().padding(GymFuelSpacing.medium), verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.small)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -191,18 +205,32 @@ private fun LoggedFoodCard(entry: FoodEntry, onUpdateStatus: (String, EntryStatu
                 FoodArtwork(
                     name = entry.foodNameSnapshot,
                     imageReference = entry.imageReferenceSnapshot,
-                    modifier = Modifier.size(68.dp).clip(MaterialTheme.shapes.medium),
+                    modifier = Modifier.size(72.dp).clip(MaterialTheme.shapes.medium),
                 )
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.xSmall)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(entry.foodNameSnapshot, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleSmall)
-                        Text("${totals.calories.display()} kcal", style = MaterialTheme.typography.labelMedium)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(GymFuelSpacing.small)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(GymFuelSpacing.small),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = entry.foodNameSnapshot,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        EntryBadge(entry)
                     }
-                    Text(
-                        text = "${entry.quantityGrams.display()} g · ${entry.status.wireValue.replaceFirstChar(Char::uppercase)}${entry.timeLabel()}",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(GymFuelSpacing.xSmall), verticalAlignment = Alignment.CenterVertically) {
+                        Text("${totals.calories.display()} kcal", style = MaterialTheme.typography.labelMedium)
+                        Text("•", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            text = "${entry.quantityGrams.display()} g",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(GymFuelSpacing.medium)) {
                         MacroValue("P", totals.proteinGrams, GymFuelTokens.colors.protein)
                         MacroValue("C", totals.carbohydrateGrams, GymFuelTokens.colors.carbohydrate)
@@ -221,10 +249,32 @@ private fun LoggedFoodCard(entry: FoodEntry, onUpdateStatus: (String, EntryStatu
 }
 
 @Composable
+private fun EntryBadge(entry: FoodEntry) {
+    val time = entry.consumedAt?.let {
+        DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault()).format(it)
+    }
+    val label = time ?: entry.status.wireValue.replaceFirstChar(Char::uppercase)
+    val description = time?.let { "Logged at $it" } ?: "Status $label"
+    Surface(
+        modifier = Modifier.semantics { contentDescription = description },
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = CircleShape,
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = GymFuelSpacing.small, vertical = GymFuelSpacing.xSmall),
+            maxLines = 1,
+            style = MaterialTheme.typography.labelSmall,
+        )
+    }
+}
+
+@Composable
 private fun MacroValue(label: String, value: BigDecimal, color: androidx.compose.ui.graphics.Color) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(6.dp).background(color, CircleShape))
-        Text("$label ${value.display()}g", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
+    Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = color, style = MaterialTheme.typography.labelSmall)
+        Text("${value.display()}g", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -245,9 +295,5 @@ private fun EmptyLogState(date: LocalDate) {
         }
     }
 }
-
-private fun FoodEntry.timeLabel(): String = consumedAt?.let {
-    " · " + DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault()).format(it)
-}.orEmpty()
 
 private fun BigDecimal.display() = stripTrailingZeros().toPlainString()
