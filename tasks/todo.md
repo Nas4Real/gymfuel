@@ -219,3 +219,59 @@ Plan: `tasks/plan.md`
 
 - [x] Owner approved the implementation plan.
 - [x] Owner approved the Today visual direction or explicitly requested implementation without visual iteration.
+
+## Milestone 7: Authenticated profiles and complete history
+
+### Task 21 — Owner-scoped local data and profile contract
+
+- [ ] Add an owner-scoped local profile, owner-scoped targets/outbox, and a migration that safely claims legacy null-owner data for the first authenticated account.
+- [ ] Filter every user-data DAO and pending-mutation query by active owner while keeping seed food templates shared.
+- Acceptance: signing into another account cannot display or upload the first account's local records.
+- Verify: Room migration/repository isolation tests and focused JVM tests.
+
+### Task 22 — Supabase profile migration and RLS verification
+
+- [ ] Add validated current profile inputs to `profiles`, preserve effective target snapshots, and retain complete history without date-based deletion.
+- [ ] Extend two-user RLS tests and run security/performance advisors after the linked migration.
+- Acceptance: each account can CRUD only its profile and history; owner/date indexes support complete-history queries.
+- Verify: linked migration list, SQL assertions, advisors, and aggregate row checks.
+
+### Task 23 — Auth-first application state
+
+- [ ] Add English sign-in/sign-up UI, persisted-session restore, safe errors, restore progress, and sign out.
+- [ ] Claim legacy local data after the first successful sign-in and pull existing account data before deciding onboarding is required.
+- Acceptance: signed-out launch cannot enter the tracker; cached sessions reopen offline when local profile data exists.
+- Verify: gateway/reducer tests, Compose auth flow tests, clean-install phone check.
+
+### Task 24 — Account onboarding and profile editing
+
+- [ ] Require sex, age, height, weight, activity, and surplus inputs for accounts without a profile.
+- [ ] Save profile plus calculated effective target transactionally; reuse the same editor from Settings.
+- Acceptance: onboarding is required once per account and profile edits recalculate only future/effective targets.
+- Verify: calculator/profile tests, Compose validation tests, Supabase profile row check.
+
+### Task 25 — Complete date navigation and English formatting
+
+- [ ] Replace the seven-day row with an English horizontal month-to-date selector from day 1 through today, initially scrolled to today.
+- Acceptance: every current-month day is reachable and selecting one updates entries, hydration, and target without limiting stored history.
+- Verify: pure date-range test, Compose scroll/select test, physical-phone check under a non-English system locale.
+
+### Task 26 — Feedback, delete, and Undo
+
+- [ ] Show a success snackbar with Undo after saved/quick food logging.
+- [ ] Long-press a food card to reveal delete confirmation; soft-delete and restore via owner-scoped outbox mutations.
+- Acceptance: totals update immediately, Undo restores the same entry id, and Supabase receives tombstone/restoration state.
+- Verify: repository state tests, Compose gesture/snackbar tests, linked row verification.
+
+### Task 27 — Sync status and CSV history export
+
+- [ ] Present synchronized/pending/failed status, manual retry, account email, and profile edit in Settings.
+- [ ] Export last 7 days, current month, last 30 days, or all history as English UTF-8 CSV through Android Create Document.
+- Acceptance: export rows/totals match Room and no export is uploaded or committed.
+- Verify: CSV formatter unit tests, Compose range-selection test, phone document export.
+
+### Task 28 — Upgrade release gate
+
+- [ ] Run database advisors/RLS assertions, full JVM/lint/build/device suites, English string audit, secret/personal-data scan, and clean/upgrade phone smoke tests.
+- [ ] Install and push the verified APK/source while preserving existing phone data.
+- Acceptance: all new specification criteria have recorded evidence and the worktree is clean on `main`.

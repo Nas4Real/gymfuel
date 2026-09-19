@@ -7,7 +7,7 @@ Primary user: The repository owner
 ## Assumptions
 
 1. The first release targets Android only and is built natively with Kotlin and Jetpack Compose.
-2. One private user signs in with email credentials and normally uses one active phone at a time.
+2. Every private account signs in with email credentials. One account is active on a phone at a time, and local/cloud records are partitioned by authenticated user id.
 3. The app must remain usable without a network connection; the UI reads and writes local data first.
 4. Supabase is the authenticated cloud copy used for recovery and synchronization, not the UI's direct source of truth.
 5. GitHub stores source code and documentation only. Personal nutrition records never enter the Git repository.
@@ -37,6 +37,10 @@ The app must minimize repeated data entry, preserve trustworthy historical calcu
 - As the user, I can inspect daily and weekly adherence history.
 - As the user, I can log while offline and see whether my local changes are pending, synchronized, or failed.
 - As the user, I can sign into a replacement phone and restore synchronized records.
+- As the user, I start at an English email/password sign-in or sign-up screen and remain signed in across app restarts.
+- As a new user, I complete body-profile onboarding before entering the tracker; the profile and calculated targets belong to my account.
+- As the user, I can export my food history as CSV for the last 7 days, current month, last 30 days, or all time.
+- As the user, I receive immediate confirmation with Undo after logging food and can long-press an entry to remove it safely.
 
 ### Non-goals for version 1
 
@@ -65,6 +69,14 @@ The initial implementation uses the Mifflin-St Jeor basal metabolic rate formula
 
 Recalculating targets creates a new effective-dated target. It never rewrites the targets against which older days were evaluated.
 
+### Authentication and onboarding
+
+The app opens into an English email/password authentication screen when no persisted Supabase session exists. It supports sign in and sign up, explains email-confirmation requirements without exposing provider errors, and never logs credentials or tokens. A restored authenticated session may open the local tracker offline.
+
+After authentication, an account without a complete local or synchronized profile must finish onboarding before using the main navigation. The profile stores age, formula sex, height, weight, activity multiplier, surplus preference, unit system, and timezone. Saving onboarding creates both the account profile and an effective-dated nutrition target in one local transaction and queues both for synchronization. Settings edits the same profile and creates a new target snapshot when calculation inputs change.
+
+On the first account sign-in after upgrading an existing installation, unowned legacy records are assigned to that authenticated account locally before synchronization. Records owned by one account must never be displayed or uploaded under another account.
+
 ### Food library
 
 Each food contains:
@@ -92,12 +104,18 @@ Primary progress indicators use consumed entries only. A visually lighter foreca
 
 The current Home layout replaces the separate History screen. It provides:
 
-- a rolling seven-day selector ending today; tapping a date updates its food log, hydration, totals, and effective target
+- an English, horizontally scrollable selector from the first day of the current month through today, initially positioned at today; tapping a date updates its food log, hydration, totals, and effective target
 - a prominent calorie card, three macro progress cards, hydration, and recently logged food snapshots
 - logging for the selected date, including saved food, quick food, and water
 - Settings always edits the current target independently of the date being viewed
 
 Weekly averages and streaks are deferred. The separate History destination is removed; stored entries remain intact.
+
+Food and water history is retained indefinitely in Room and Supabase. Date selectors and export ranges are views over the complete history, never retention rules or synchronization filters. A successful food log displays an English snackbar naming the item with an Undo action. Long-pressing a food card reveals a destructive confirmation; confirming creates a synchronized tombstone and immediately recalculates the selected day's totals. Undo restores the entry and synchronizes the restoration.
+
+### Settings and export
+
+Settings displays the authenticated email and a sync-health state that distinguishes synchronized, pending, failed, and offline work. It provides manual retry, sign out, and profile editing. History export uses Android's document-creation flow so the user chooses the destination; the app writes an English UTF-8 CSV containing dates, food names, quantities, statuses, calories, protein, carbohydrates, and fat for the selected range. Exports are generated locally from Room and never committed or uploaded as files.
 
 ### Visual system and navigation
 
@@ -121,6 +139,7 @@ Synchronization rules:
 - Server timestamps and row revisions determine ordering; phone clock time is not trusted for conflict resolution.
 - Version 1 assumes one active phone. If conflicting edits do occur, the latest accepted revision wins and the event is logged for diagnosis.
 - Initial login on a replacement phone hydrates Room from Supabase before normal background synchronization continues.
+- Push and pull cover all owned foods, profiles, targets, food entries, and water entries regardless of age; no last-week or last-month cutoff is permitted.
 
 ## Data and Security Model
 
@@ -132,6 +151,7 @@ The initial Supabase schema is expected to contain:
 - `nutrition_targets`
 - `foods`
 - `food_entries`
+- `water_entries`
 
 Supabase Storage contains a private `food-images` bucket. Object paths begin with the authenticated user's id and Storage policies enforce that ownership for read, upload, update, and delete operations.
 
@@ -147,6 +167,7 @@ The local database additionally contains synchronization metadata and an `outbox
 - Runtime configuration is supplied outside version control; a redacted example documents required values.
 - Database constraints validate ownership, required fields, non-negative nutrient values, and valid statuses in addition to client validation.
 - Logs and crash reports must not include credentials, access tokens, or complete nutrition records.
+- A local row and outbox mutation are scoped to the active authenticated user before they can be displayed or synchronized.
 - SQL migrations are committed and reviewed; production schema changes are never performed only through a dashboard.
 
 ## Architecture and Technology
@@ -277,6 +298,7 @@ Coverage percentage is not the target. All nutrition calculations, ownership bou
 - Text supports Android font scaling without clipping critical nutrient values.
 - Progress includes readable text, not only rings or bars.
 - Loading, empty, offline, pending-sync, failed-sync, and validation states are explicitly designed.
+- All product copy and formatted app dates/times use English regardless of the phone's system language; numeric keyboards continue respecting safe decimal input.
 - Common logging actions should be reachable in at most three intentional taps after selecting a recent or favorite food.
 - Destructive actions offer a recoverable undo where practical.
 
@@ -326,6 +348,10 @@ Version 1 is complete when all of the following are demonstrated:
 10. RLS tests prove that one authenticated test user cannot read or mutate another user's rows.
 11. Unit tests, Android lint, debug build, database migration tests, and critical Compose tests pass.
 12. No secret or personal data is present in the Git history or build logs.
+13. Launch without a session shows English sign-in/sign-up; a new account cannot enter the tracker until profile onboarding is saved.
+14. The date selector scrolls from the first of the current month through today, while synchronization and all-time export prove older records remain retained.
+15. Food logging confirms success with Undo, and long-press removal updates totals immediately and synchronizes a tombstone.
+16. Settings edits the account profile, reports sync health, and exports valid CSV for each supported range.
 
 ## Delivery Milestones
 

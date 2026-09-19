@@ -1,6 +1,6 @@
 # Implementation Plan: GymFuel Android
 
-Status: Draft for owner approval
+Status: Active — authenticated-profile and complete-history upgrade approved by owner request
 Specification: `docs/product-spec.md`
 Design system: `.superdesign/design-system.md`
 Superdesign draft: `13a39aac-ea98-4696-85d2-718126267cca`
@@ -201,3 +201,43 @@ Non-obvious implementation decisions will cite deep official documentation links
 ## Approval Gate
 
 Implementation starts only after the owner approves both this plan and `tasks/todo.md`, and approves the Today visual direction or explicitly asks to implement without further visual iteration.
+
+## Active Upgrade: Authenticated Profiles and Complete History
+
+### Dependency graph
+
+```text
+Authenticated session
+    -> active local owner + legacy-data claim
+        -> synchronized account profile
+            -> onboarding / profile editing / calculated target snapshot
+        -> complete-history push and pull
+            -> month-to-date date selector
+            -> local CSV export ranges
+            -> synchronized entry deletion and undo
+```
+
+### Architecture decisions
+
+- The root Compose app is an explicit session state machine: restoring session, signed out, restoring account data, onboarding required, or ready.
+- Room remains the UI source of truth. Profile saves, entry deletes/restores, and target creation are transactional local mutations with owner-scoped outbox rows.
+- The first authenticated account on an upgraded installation claims legacy rows whose owner is null. Subsequent accounts can only observe and synchronize their own rows plus shared seed templates.
+- `profiles` stores current calculator inputs; `nutrition_targets` remains the effective-dated historical snapshot. Editing the profile never rewrites older targets.
+- Export reads Room and writes through Android's Create Document contract. Supabase stores structured history indefinitely and never stores generated export files.
+- Soft deletion remains the cloud contract. Long-press removal writes a tombstone; Undo clears it and queues another idempotent upsert.
+
+### Verification checkpoints
+
+1. Auth/profile checkpoint: RLS and Room owner-isolation tests pass; sign-up/sign-in/onboarding works on the physical phone.
+2. History checkpoint: month selector, complete pull, CSV range generation, delete, and Undo tests pass.
+3. Release checkpoint: database advisors, full JVM/lint/build/device suites, fresh install, upgrade install, English-copy audit, secret scan, and phone smoke test pass.
+
+### Risks and mitigations
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Existing local records are uploaded to the wrong account | High | Claim only null-owner legacy rows once; owner-scope every DAO and outbox query |
+| New sign-in overwrites an existing cloud profile before restore | High | Pull/restore before deciding onboarding is required |
+| Delete/Undo races create duplicate or lost history | High | Stable client UUID, tombstone upsert, one outbox key per entity, state-based tests |
+| CSV export leaks data unintentionally | Medium | User-selected document destination, local generation only, no logs or automatic sharing |
+| Large history becomes slow | Medium | Indexed owner/date queries, range-scoped export, paginated/ordered cloud reads when data grows |
