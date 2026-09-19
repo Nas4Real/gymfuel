@@ -20,6 +20,8 @@ import com.gymfuel.app.core.model.Food
 import com.gymfuel.app.core.model.NutritionPer100g
 import com.gymfuel.app.ui.theme.GymFuelSpacing
 import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 private enum class LogKind { SavedFood, QuickFood, Water }
 
@@ -27,12 +29,16 @@ private enum class LogKind { SavedFood, QuickFood, Water }
 @Composable
 fun LogFoodSheet(
     foods: List<Food>,
+    date: LocalDate = LocalDate.now(),
     onDismiss: () -> Unit,
     onLogSaved: (Food, BigDecimal, EntryStatus) -> Unit,
     onLogQuick: (String, NutritionPer100g, BigDecimal, EntryStatus, Boolean) -> Unit,
     onLogWater: (BigDecimal) -> Unit,
 ) {
     var kind by rememberSaveable { mutableStateOf(LogKind.SavedFood) }
+    val dayLabel = remember(date) {
+        if (date == LocalDate.now()) "today" else date.format(DateTimeFormatter.ofPattern("MMM d"))
+    }
     val sheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.92f
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = MaterialTheme.colorScheme.surface) {
@@ -49,7 +55,7 @@ fun LogFoodSheet(
             }
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 when (kind) {
-                    LogKind.SavedFood -> SavedFoodForm(foods, onLogSaved)
+                    LogKind.SavedFood -> SavedFoodForm(foods, dayLabel, onLogSaved)
                     LogKind.QuickFood -> QuickFoodForm(onLogQuick)
                     LogKind.Water -> WaterForm(onLogWater)
                 }
@@ -59,7 +65,11 @@ fun LogFoodSheet(
 }
 
 @Composable
-private fun SavedFoodForm(foods: List<Food>, onLog: (Food, BigDecimal, EntryStatus) -> Unit) {
+private fun SavedFoodForm(
+    foods: List<Food>,
+    dayLabel: String,
+    onLog: (Food, BigDecimal, EntryStatus) -> Unit,
+) {
     var query by rememberSaveable { mutableStateOf("") }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var quantity by rememberSaveable { mutableStateOf("100") }
@@ -86,7 +96,9 @@ private fun SavedFoodForm(foods: List<Food>, onLog: (Food, BigDecimal, EntryStat
             AmountField(quantity, { quantity = it }, "Amount eaten", "g")
             StatusPicker(status) { status = it }
             totals?.let { NutritionPreview(it.calories, it.proteinGrams, it.carbohydrateGrams, it.fatGrams) }
-            Button({ grams?.let { onLog(selected, it, status) } }, Modifier.fillMaxWidth(), enabled = totals != null) { Text("Add to today") }
+            Button({ grams?.let { onLog(selected, it, status) } }, Modifier.fillMaxWidth(), enabled = totals != null) {
+                Text("Add to $dayLabel")
+            }
         }
     }
 }

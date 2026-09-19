@@ -88,17 +88,24 @@ Every entry also stores an immutable snapshot of the food name, preparation stat
 
 Primary progress indicators use consumed entries only. A visually lighter forecast marker shows consumed plus planned totals. Skipped entries contribute to neither.
 
-### History
+### Home and day history
 
-Version 1 provides:
+The current Home layout replaces the separate History screen. It provides:
 
-- daily totals and target percentages
-- a seven-day view
-- average daily calories and macros for the selected week
-- count of days each target was met within a documented tolerance
-- simple adherence streaks that do not punish future or incomplete days
+- a rolling seven-day selector ending today; tapping a date updates its food log, hydration, totals, and effective target
+- a prominent calorie card, three macro progress cards, hydration, and recently logged food snapshots
+- logging for the selected date, including saved food, quick food, and water
+- Settings always edits the current target independently of the date being viewed
 
-This is adherence reporting, not an assertion that higher or lower intake caused a particular gym result.
+Weekly averages and streaks are deferred. The separate History destination is removed; stored entries remain intact.
+
+### Visual system and navigation
+
+- Poppins typography on a black foundation (`#000000`), neutral dark card surfaces, and readable light text.
+- Semantic accents: green `#0E6A2A` for protein/actions, gold `#8A6500` for carbohydrates/calories, red `#950101` for fat/errors, blue `#013B95` for hydration.
+- Navigation follows the owner's latest screenshot: Home, Foods, and Settings inside one compact pill, with a separate circular `+` on its right. Both are siblings in one row; no floating overlay, center cutout, or overlapping tab hit areas.
+- The destination pill divides available width equally. The action has a fixed touch target; the dock reserves its own content space and Android navigation insets.
+- Reference: [Material navigation guidance](https://m3.material.io/components/navigation-bar/overview). The owner's side-action arrangement is a custom Compose layout using native accessible controls.
 
 ### Offline-first synchronization
 

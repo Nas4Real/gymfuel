@@ -40,7 +40,9 @@ AGP 9 enables built-in Kotlin, so the project intentionally does not apply the o
 
 The Android application now includes the complete personal-use nutrition slice:
 
-- dark Poppins Compose UI for Today, food library, seven-day history, and settings
+- dark Poppins Compose UI for Home, food library, and settings
+- seven-day selection on Home with food snapshots, hydration, and progress for that date
+- compact three-destination navigation pill with a separate circular log action on its right
 - Room-backed foods, editable custom foods, immutable meal snapshots, targets, and a durable sync outbox
 - weighed food logging with live calorie/protein/carbohydrate/fat calculation and consumed/planned states
 - Mifflin-St Jeor muscle-gain target calculation
