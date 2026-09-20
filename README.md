@@ -40,13 +40,14 @@ AGP 9 enables built-in Kotlin, so the project intentionally does not apply the o
 
 The Android application now includes the complete personal-use nutrition slice:
 
-- dark Poppins Compose UI for Home, food library, and settings
-- seven-day selection on Home with food snapshots, hydration, and progress for that date
+- English, dark Poppins Compose UI for authentication, onboarding, Home, food library, and settings
+- horizontally scrollable Home dates from the first of the current month through today, backed by indefinite history retention
 - compact three-destination navigation pill with a separate circular log action on its right
-- Room-backed foods, editable custom foods, immutable meal snapshots, targets, and a durable sync outbox
+- owner-scoped Room foods, profiles, immutable meal snapshots, effective-dated targets, tombstones, and a durable sync outbox
 - weighed food logging with live calorie/protein/carbohydrate/fat calculation and consumed/planned states
 - Mifflin-St Jeor muscle-gain target calculation
-- Supabase email/password authentication plus RLS-protected Postgres recovery synchronization
+- mandatory Supabase email/password authentication, first-login body-profile onboarding, and RLS-protected complete-history synchronization
+- success feedback with Undo, long-press entry removal, sync health, profile editing, and selectable-range CSV export
 - bundled food examples and WebP images, with seed templates also stored in Supabase
 
 Copy the keys from `.env.example` into untracked `local.properties` before building cloud-enabled variants:
