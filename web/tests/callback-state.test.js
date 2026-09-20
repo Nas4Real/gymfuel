@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { readCallbackState } from "../src/callback-state.js";
+import { readCallbackState } from "../src/assets/callback-state.js";
 
 describe("readCallbackState", () => {
   it("returns a success state and forwards only the PKCE code", () => {

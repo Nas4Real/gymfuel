@@ -7,6 +7,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test"
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && node scripts/serve.mjs",
+    "test": "node --test",
+    "check": "npm test && npm run build"
   }
 }

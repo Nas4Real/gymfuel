@@ -33,6 +33,8 @@ exports/
 *.apk
 *.aab
 artifacts/
+web/dist/
+web/node_modules/
 
 # Design-tool temporary files
 .superdesign/tmp/

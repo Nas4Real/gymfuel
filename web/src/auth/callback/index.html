@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#08111f">
+    <meta name="referrer" content="no-referrer">
+    <title>Checking confirmation · GymFuel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body class="result-page" data-state="loading">
+    <main class="page-shell">
+      <a class="brand" href="/" aria-label="GymFuel home">
+        <span class="brand-mark" aria-hidden="true">G</span>
+        <span>GymFuel</span>
+      </a>
+
+      <section class="result-card" aria-labelledby="result-title">
+        <div class="eyebrow">
+          <span class="eyebrow-dot" aria-hidden="true"></span>
+          <span id="state-label">Secure confirmation</span>
+        </div>
+
+        <div class="state-icon" aria-hidden="true">
+          <svg class="icon icon-loading" viewBox="0 0 24 24">
+            <path d="M20 12a8 8 0 1 1-3.1-6.3"></path>
+          </svg>
+          <svg class="icon icon-success" viewBox="0 0 24 24">
+            <path d="m7 12.5 3.1 3.1L17.5 8"></path>
+          </svg>
+          <svg class="icon icon-error" viewBox="0 0 24 24">
+            <path d="M12 7v6"></path>
+            <path d="M12 17h.01"></path>
+            <path d="M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path>
+          </svg>
+          <svg class="icon icon-unavailable" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 11v5"></path>
+            <path d="M12 8h.01"></path>
+          </svg>
+        </div>
+
+        <p class="state-label" id="result-kicker">Checking your link</p>
+        <h1 id="result-title">Checking confirmation…</h1>
+        <p id="result-message" class="result-message" aria-live="polite">
+          Please wait while GymFuel reads the secure confirmation result.
+        </p>
+
+        <div class="actions">
+          <a id="open-app" class="primary-action" hidden>Continue in GymFuel</a>
+        </div>
+
+        <p id="desktop-hint" class="desktop-hint" hidden>
+          Confirmed on a computer? Return to your phone and sign in with the same email and password.
+        </p>
+
+        <div class="security-note">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 12 2 2 4-5"></path>
+            <path d="M12 3 5 6v5c0 4.6 2.9 8.1 7 10 4.1-1.9 7-5.4 7-10V6l-7-3Z"></path>
+          </svg>
+          Verified by Supabase. GymFuel never displays or stores your confirmation code here.
+        </div>
+
+        <noscript>
+          <p class="noscript-message">JavaScript is required to read the confirmation result safely.</p>
+        </noscript>
+      </section>
+
+      <footer class="site-footer">Personal nutrition, securely in sync.</footer>
+    </main>
+    <script type="module" src="/assets/callback.js"></script>
+  </body>
+</html>

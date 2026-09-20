@@ -290,8 +290,8 @@ Plan: `tasks/plan.md`
 
 ### Task 30 — Accessible Vercel static page
 
-- [ ] Implement success, expired/invalid, and unavailable result states using GymFuel’s dark Poppins design system.
-- [ ] Add a deterministic static build, local server, Vercel headers, deployment guide, and ignored output.
+- [x] Implement success, expired/invalid, and unavailable result states using GymFuel’s dark Poppins design system.
+- [x] Add a deterministic static build, local server, Vercel headers, deployment guide, and ignored output.
 - Acceptance: responsive result page has no inline script, no secret, no analytics, safe headers, and a keyboard-visible primary action.
 - Verify: `npm test`, `npm run build`, `npm audit`, local browser screenshots and accessibility/console checks.
 - Likely files: page HTML/CSS/controller, build/server scripts, `vercel.json`, `web/README.md`, `.gitignore`.
