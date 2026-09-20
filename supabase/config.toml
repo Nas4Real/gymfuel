@@ -247,6 +247,10 @@ otp_expiry = 3600
 subject = "Confirm your GymFuel account"
 content_path = "./supabase/templates/confirmation.html"
 
+[auth.email.template.magic_link]
+subject = "Continue to GymFuel"
+content_path = "./supabase/templates/magic_link.html"
+
 # [auth.email.template.invite]
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
