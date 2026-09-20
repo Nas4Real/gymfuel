@@ -280,8 +280,8 @@ Plan: `tasks/plan.md`
 
 ### Task 29 — Tested callback contract
 
-- [ ] Add a dependency-free web package and write failing tests for successful PKCE callbacks, expired/invalid errors, direct visits, and unsafe codes.
-- [ ] Implement the smallest pure parser and native-app URL builder that satisfies the tests.
+- [x] Add a dependency-free web package and write failing tests for successful PKCE callbacks, expired/invalid errors, direct visits, and unsafe codes.
+- [x] Implement the smallest pure parser and native-app URL builder that satisfies the tests.
 - Acceptance: only a bounded `code` produces a success state and native continuation URL; external error text is never rendered verbatim.
 - Verify: `npm test` from `web/` and focused test output proving the initial RED state was observed.
 - Likely files: `web/package.json`, parser, parser tests.
