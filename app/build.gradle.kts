@@ -15,6 +15,9 @@ val localProperties = Properties().apply {
 fun quotedBuildConfigValue(name: String): String =
     "\"${localProperties.getProperty(name, "").replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
+val authCallbackScheme = "com.gymfuel.app"
+val authCallbackHost = "auth-callback"
+
 android {
     namespace = "com.gymfuel.app"
     compileSdk = 37
@@ -29,6 +32,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SUPABASE_URL", quotedBuildConfigValue("SUPABASE_URL"))
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", quotedBuildConfigValue("SUPABASE_PUBLISHABLE_KEY"))
+        buildConfigField("String", "AUTH_CALLBACK_SCHEME", "\"$authCallbackScheme\"")
+        buildConfigField("String", "AUTH_CALLBACK_HOST", "\"$authCallbackHost\"")
+        manifestPlaceholders["authCallbackScheme"] = authCallbackScheme
+        manifestPlaceholders["authCallbackHost"] = authCallbackHost
     }
 
     buildFeatures {

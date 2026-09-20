@@ -58,3 +58,5 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
 ```
 
 The Android client must use only a publishable key. Never place a Supabase secret or `service_role` key in this repository or the APK.
+
+Supabase Auth must allow the native confirmation callback `com.gymfuel.app://auth-callback` in **Authentication → URL Configuration**. The app requests that URL during sign-up, handles it through an Android browsable intent filter, and exchanges the returned PKCE code for a persisted session.

@@ -71,6 +71,15 @@ private sealed interface RootState {
     data class Ready(val session: SupabaseGateway.Session?) : RootState
 }
 
+private val RootState.activeUserId: String?
+    get() = when (this) {
+        RootState.RestoringSession, RootState.SignedOut -> null
+        is RootState.RestoringAccount -> session.userId
+        is RootState.RestoreFailed -> session.userId
+        is RootState.Onboarding -> session.userId
+        is RootState.Ready -> session?.userId
+    }
+
 @Composable
 fun GymFuelApp(
     repository: FoodRepository? = null,
@@ -93,8 +102,9 @@ fun GymFuelApp(
         var onboardingError by remember { mutableStateOf<String?>(null) }
 
         fun openAccount(session: SupabaseGateway.Session) {
+            if (rootState.activeUserId == session.userId && rootState !is RootState.RestoreFailed) return
+            rootState = RootState.RestoringAccount(session)
             scope.launch {
-                rootState = RootState.RestoringAccount(session)
                 val result = runCatching {
                     requireNotNull(repository) { "Local storage is unavailable" }
                     repository.activateOwner(session.userId)
@@ -117,6 +127,10 @@ fun GymFuelApp(
             if (supabase == null) return@LaunchedEffect
             val session = if (supabase.isConfigured) runCatching { supabase.restoreSession() }.getOrNull() else null
             if (session == null) rootState = RootState.SignedOut else openAccount(session)
+        }
+
+        LaunchedEffect(supabase) {
+            supabase?.externalAuthSessions?.collect(::openAccount)
         }
 
         when (val state = rootState) {

@@ -133,7 +133,7 @@ fun AuthScreen(
                     }.onSuccess { session ->
                         password = ""
                         if (session == null) {
-                            message = "Check your email to confirm your account, then sign in."
+                            message = "Check your email and open the confirmation link on this phone. GymFuel will finish signing you in."
                         } else {
                             onAuthenticated(session)
                         }
