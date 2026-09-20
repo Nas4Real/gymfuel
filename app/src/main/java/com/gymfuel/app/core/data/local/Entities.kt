@@ -5,7 +5,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "foods", indices = [Index("name"), Index("updatedAtEpochMillis")])
+@Entity(tableName = "foods", indices = [Index("name"), Index("updatedAtEpochMillis"), Index("ownerId")])
 data class FoodEntity(
     @PrimaryKey val id: String,
     val ownerId: String?,
@@ -28,7 +28,7 @@ data class FoodEntity(
 
 @Entity(
     tableName = "food_entries",
-    indices = [Index("localDateEpochDay"), Index("foodId"), Index("updatedAtEpochMillis")],
+    indices = [Index("localDateEpochDay"), Index("foodId"), Index("updatedAtEpochMillis"), Index(value = ["ownerId", "localDateEpochDay"])],
 )
 data class FoodEntryEntity(
     @PrimaryKey val id: String,
@@ -51,7 +51,7 @@ data class FoodEntryEntity(
     val syncState: String,
 )
 
-@Entity(tableName = "water_entries", indices = [Index("localDateEpochDay"), Index("updatedAtEpochMillis")])
+@Entity(tableName = "water_entries", indices = [Index("localDateEpochDay"), Index("updatedAtEpochMillis"), Index(value = ["ownerId", "localDateEpochDay"])])
 data class WaterEntryEntity(
     @PrimaryKey val id: String,
     val ownerId: String?,
@@ -64,9 +64,10 @@ data class WaterEntryEntity(
     val syncState: String,
 )
 
-@Entity(tableName = "sync_outbox", indices = [Index(value = ["entityType", "entityId"], unique = true)])
+@Entity(tableName = "sync_outbox", indices = [Index(value = ["entityType", "entityId"], unique = true), Index(value = ["ownerId", "createdAtEpochMillis"])])
 data class OutboxEntity(
     @PrimaryKey val id: String,
+    val ownerId: String?,
     val entityType: String,
     val entityId: String,
     val operation: String,
@@ -75,9 +76,10 @@ data class OutboxEntity(
     val lastError: String? = null,
 )
 
-@Entity(tableName = "nutrition_targets", indices = [Index("effectiveDateEpochDay")])
+@Entity(tableName = "nutrition_targets", indices = [Index("effectiveDateEpochDay"), Index(value = ["ownerId", "effectiveDateEpochDay"])])
 data class NutritionTargetEntity(
     @PrimaryKey val id: String,
+    val ownerId: String?,
     val effectiveDateEpochDay: Long,
     val calories: String,
     val proteinGrams: String,
@@ -90,6 +92,23 @@ data class NutritionTargetEntity(
     val weightKilograms: String?,
     val activityMultiplier: String?,
     val surplusCalories: String?,
+    val updatedAtEpochMillis: Long,
+    val revision: Long,
+    val syncState: String,
+)
+
+@Entity(tableName = "user_profiles")
+data class UserProfileEntity(
+    @PrimaryKey val ownerId: String,
+    val email: String?,
+    val ageYears: Int,
+    val formulaSex: String,
+    val heightCentimeters: String,
+    val weightKilograms: String,
+    val activityMultiplier: String,
+    val surplusCalories: String,
+    val unitSystem: String,
+    val timeZone: String,
     val updatedAtEpochMillis: Long,
     val revision: Long,
     val syncState: String,

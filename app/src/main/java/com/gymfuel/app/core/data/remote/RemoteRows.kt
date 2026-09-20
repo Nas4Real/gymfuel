@@ -4,6 +4,21 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class RemoteProfileRow(
+    @SerialName("user_id") val userId: String,
+    @SerialName("time_zone") val timeZone: String = "UTC",
+    @SerialName("unit_system") val unitSystem: String = "metric",
+    @SerialName("age_years") val ageYears: Int? = null,
+    @SerialName("formula_sex") val formulaSex: String? = null,
+    @SerialName("height_centimeters") val heightCentimeters: String? = null,
+    @SerialName("weight_kilograms") val weightKilograms: String? = null,
+    @SerialName("activity_multiplier") val activityMultiplier: String? = null,
+    @SerialName("surplus_calories") val surplusCalories: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    val revision: Long = 1,
+)
+
+@Serializable
 data class RemoteFoodRow(
     val id: String,
     @SerialName("user_id") val userId: String,

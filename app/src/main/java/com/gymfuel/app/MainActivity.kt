@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             val app = application as GymFuelApplication
-            GymFuelApp(app.repository, app.supabase)
+            GymFuelApp(app.repository, app.supabase, app.syncEngine)
         }
     }
 }

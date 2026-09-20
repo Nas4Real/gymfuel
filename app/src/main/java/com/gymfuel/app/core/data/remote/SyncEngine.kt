@@ -2,6 +2,7 @@ package com.gymfuel.app.core.data.remote
 
 import com.gymfuel.app.core.data.FoodRepository
 import com.gymfuel.app.core.model.EntryStatus
+import com.gymfuel.app.core.model.AccountProfile
 import com.gymfuel.app.core.model.EffectiveNutritionTarget
 import com.gymfuel.app.core.model.Food
 import com.gymfuel.app.core.model.FoodEntry
@@ -13,7 +14,9 @@ import com.gymfuel.app.core.model.SyncState
 import com.gymfuel.app.core.model.TargetProfile
 import com.gymfuel.app.core.model.WaterEntry
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -27,6 +30,7 @@ class SyncEngine(
         val client = gateway.client ?: return
         client.auth.awaitInitialization()
         val userId = client.auth.currentUserOrNull()?.id ?: return
+        repository.activateOwner(userId)
         var pushedBatchCount = 0
         while (true) {
             val pending = repository.pendingMutations()
@@ -35,6 +39,22 @@ class SyncEngine(
             pending.forEach { mutation ->
                 try {
                     when (mutation) {
+                is FoodRepository.PendingMutation.Profile -> {
+                    val profile = mutation.value
+                    client.from("profiles").upsert(
+                        RemoteProfileRow(
+                            userId = userId,
+                            timeZone = profile.timeZone,
+                            unitSystem = profile.unitSystem,
+                            ageYears = profile.targetProfile.ageYears,
+                            formulaSex = profile.targetProfile.sex.name.lowercase(),
+                            heightCentimeters = profile.targetProfile.heightCentimeters.toPlainString(),
+                            weightKilograms = profile.targetProfile.weightKilograms.toPlainString(),
+                            activityMultiplier = profile.targetProfile.activityMultiplier.toPlainString(),
+                            surplusCalories = profile.targetProfile.surplusCalories.toPlainString(),
+                        ),
+                    ) { onConflict = "user_id" }
+                }
                 is FoodRepository.PendingMutation.Food -> {
                     val food = mutation.value
                     client.from("foods").upsert(
@@ -51,6 +71,7 @@ class SyncEngine(
                             fatPer100g = food.nutritionPer100g.fatGrams.toPlainString(),
                             imagePath = food.imageReference?.takeUnless { it.startsWith("android.resource://") },
                             isFavorite = food.isFavorite,
+                            deletedAt = mutation.deletedAt?.toString(),
                         ),
                     ) { onConflict = "id" }
                 }
@@ -72,6 +93,7 @@ class SyncEngine(
                             proteinPer100gSnapshot = entry.nutritionPer100gSnapshot.proteinGrams.toPlainString(),
                             carbohydratePer100gSnapshot = entry.nutritionPer100gSnapshot.carbohydrateGrams.toPlainString(),
                             fatPer100gSnapshot = entry.nutritionPer100gSnapshot.fatGrams.toPlainString(),
+                            deletedAt = mutation.deletedAt?.toString(),
                         ),
                     ) { onConflict = "id" }
                 }
@@ -105,6 +127,7 @@ class SyncEngine(
                             localDate = water.localDate.toString(),
                             liters = water.liters.toPlainString(),
                             loggedAt = water.loggedAt.toString(),
+                            deletedAt = mutation.deletedAt?.toString(),
                         ),
                     ) { onConflict = "id" }
                 }
@@ -118,7 +141,31 @@ class SyncEngine(
                 }
             }
         }
-        client.from("foods").select().decodeList<RemoteFoodRow>().forEach { row ->
+        client.from("profiles").select().decodeList<RemoteProfileRow>().firstOrNull { row ->
+            row.ageYears != null && row.formulaSex != null && row.heightCentimeters != null &&
+                row.weightKilograms != null && row.activityMultiplier != null && row.surplusCalories != null
+        }?.let { row ->
+            repository.mergeRemoteProfile(
+                AccountProfile(
+                    ownerId = row.userId,
+                    email = gateway.signedInEmail,
+                    targetProfile = TargetProfile(
+                        ageYears = requireNotNull(row.ageYears),
+                        sex = FormulaSex.entries.first { it.name.equals(requireNotNull(row.formulaSex), ignoreCase = true) },
+                        heightCentimeters = BigDecimal(requireNotNull(row.heightCentimeters)),
+                        weightKilograms = BigDecimal(requireNotNull(row.weightKilograms)),
+                        activityMultiplier = BigDecimal(requireNotNull(row.activityMultiplier)),
+                        surplusCalories = BigDecimal(requireNotNull(row.surplusCalories)),
+                    ),
+                    unitSystem = row.unitSystem,
+                    timeZone = row.timeZone,
+                    syncState = SyncState.Synced,
+                ),
+                updatedAt = Instant.parse(requireNotNull(row.updatedAt)),
+                revision = row.revision,
+            )
+        }
+        forEachRemoteRow<RemoteFoodRow>(client, "foods") { row ->
             repository.mergeRemoteFood(
                 Food(
                     id = row.id,
@@ -136,7 +183,7 @@ class SyncEngine(
                 revision = row.revision,
             )
         }
-        client.from("food_entries").select().decodeList<RemoteFoodEntryRow>().forEach { row ->
+        forEachRemoteRow<RemoteFoodEntryRow>(client, "food_entries") { row ->
             repository.mergeRemoteEntry(
                 FoodEntry(
                     id = row.id,
@@ -156,7 +203,7 @@ class SyncEngine(
                 revision = row.revision,
             )
         }
-        client.from("nutrition_targets").select().decodeList<RemoteNutritionTargetRow>().forEach { row ->
+        forEachRemoteRow<RemoteNutritionTargetRow>(client, "nutrition_targets") { row ->
             repository.mergeRemoteTarget(
                 EffectiveNutritionTarget(
                     id = row.id,
@@ -183,7 +230,7 @@ class SyncEngine(
                 revision = row.revision,
             )
         }
-        client.from("water_entries").select().decodeList<RemoteWaterEntryRow>().forEach { row ->
+        forEachRemoteRow<RemoteWaterEntryRow>(client, "water_entries") { row ->
             repository.mergeRemoteWater(
                 WaterEntry(
                     id = row.id,
@@ -199,7 +246,25 @@ class SyncEngine(
         }
     }
 
+    private suspend inline fun <reified T : Any> forEachRemoteRow(
+        client: SupabaseClient,
+        table: String,
+        crossinline consume: suspend (T) -> Unit,
+    ) {
+        var offset = 0L
+        while (true) {
+            val page = client.from(table).select {
+                order("id", Order.ASCENDING)
+                range(offset, offset + PULL_PAGE_SIZE - 1)
+            }.decodeList<T>()
+            for (row in page) consume(row)
+            if (page.size < PULL_PAGE_SIZE) break
+            offset += PULL_PAGE_SIZE
+        }
+    }
+
     private companion object {
         const val MAX_PUSH_BATCHES = 20
+        const val PULL_PAGE_SIZE = 500
     }
 }

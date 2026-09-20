@@ -29,6 +29,7 @@ class FoodRepositoryTest {
             GymFuelDatabase::class.java,
         ).allowMainThreadQueries().build()
         repository = FoodRepository(database)
+        runBlocking { repository.activateOwner("user-one") }
     }
 
     @After
@@ -182,5 +183,43 @@ class FoodRepositoryTest {
         val pending = repository.pendingMutations()
         assertTrue(pending[0] is FoodRepository.PendingMutation.Food)
         assertTrue(pending[1] is FoodRepository.PendingMutation.Entry)
+    }
+
+    @Test
+    fun switchingAccounts_isolatesFoodsEntriesTargetsAndOutbox() = runBlocking {
+        val firstFood = repository.createFood(
+            "First account food",
+            Preparation.Cooked,
+            NutritionPer100g(BigDecimal("100"), BigDecimal("10"), BigDecimal("10"), BigDecimal("2")),
+        )
+        repository.logFood(firstFood.id, BigDecimal("100"), EntryStatus.Consumed)
+        assertEquals(2, repository.pendingMutations().size)
+
+        repository.activateOwner("user-two")
+
+        assertTrue(repository.entriesFor(java.time.LocalDate.now()).first().isEmpty())
+        assertTrue(repository.foods.first().none { it.name == "First account food" })
+        assertTrue(repository.pendingMutations().isEmpty())
+    }
+
+    @Test
+    fun removingAndRestoringEntry_keepsStableIdentityAndRecalculatesVisibleHistory() = runBlocking {
+        val food = repository.createFood(
+            "Undo food",
+            Preparation.Cooked,
+            NutritionPer100g(BigDecimal("100"), BigDecimal("10"), BigDecimal("10"), BigDecimal("2")),
+        )
+        val entry = repository.logFood(food.id, BigDecimal("100"), EntryStatus.Consumed)
+
+        val removed = repository.removeEntry(entry.id)
+        assertEquals(entry.id, removed.id)
+        assertTrue(repository.entriesFor(java.time.LocalDate.now()).first().isEmpty())
+        val deleteMutation = repository.pendingMutations().filterIsInstance<FoodRepository.PendingMutation.Entry>().single()
+        assertTrue(deleteMutation.deletedAt != null)
+
+        repository.restoreEntry(entry.id)
+        assertEquals(entry.id, repository.entriesFor(java.time.LocalDate.now()).first().single().id)
+        val restoreMutation = repository.pendingMutations().filterIsInstance<FoodRepository.PendingMutation.Entry>().single()
+        assertEquals(null, restoreMutation.deletedAt)
     }
 }

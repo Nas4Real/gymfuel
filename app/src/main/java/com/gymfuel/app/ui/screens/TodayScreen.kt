@@ -1,8 +1,10 @@
 package com.gymfuel.app.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
@@ -13,15 +15,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.gymfuel.app.core.model.DailyNutrition
 import com.gymfuel.app.core.model.EntryStatus
 import com.gymfuel.app.core.model.FoodEntry
+import com.gymfuel.app.core.model.HistoryDates
 import com.gymfuel.app.core.model.NutritionTarget
 import com.gymfuel.app.ui.theme.GymFuelSpacing
 import com.gymfuel.app.ui.theme.GymFuelTokens
@@ -49,11 +60,12 @@ fun TodayScreen(
     entries: List<FoodEntry>,
     waterLiters: BigDecimal = BigDecimal.ZERO,
     selectedDate: LocalDate = LocalDate.now(),
-    availableDates: List<LocalDate> = (6 downTo 0).map { LocalDate.now().minusDays(it.toLong()) },
+    availableDates: List<LocalDate> = HistoryDates.currentMonthThrough(LocalDate.now()),
     pendingSyncCount: Int = 0,
     failedSyncCount: Int = 0,
     onDateSelected: (LocalDate) -> Unit = {},
     onUpdateEntryStatus: (String, EntryStatus) -> Unit,
+    onRemoveEntry: (FoodEntry) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -69,7 +81,7 @@ fun TodayScreen(
                 modifier = Modifier.padding(top = GymFuelSpacing.large),
             )
         }
-        item { WeekSelector(availableDates, selectedDate, onDateSelected) }
+        item { MonthDateSelector(availableDates, selectedDate, onDateSelected) }
         item { CalorieSummary(nutrition, target) }
         item { MacroSummary(nutrition, target) }
         item { HydrationSummary(waterLiters, target?.waterLiters) }
@@ -91,7 +103,7 @@ fun TodayScreen(
             item { EmptyLogState(selectedDate) }
         } else {
             items(entries, key = { it.id }) { entry ->
-                LoggedFoodCard(entry, onUpdateEntryStatus)
+                LoggedFoodCard(entry, onUpdateEntryStatus, onRemoveEntry)
             }
         }
     }
@@ -105,7 +117,7 @@ private fun HomeHeader(
     modifier: Modifier = Modifier,
 ) {
     val dateLabel = remember(selectedDate) {
-        selectedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.getDefault()))
+        selectedDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.ENGLISH))
     }
     val status = when {
         failedSyncCount > 0 -> Triple("SYNC FAILED", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
@@ -142,17 +154,25 @@ private fun HomeHeader(
 }
 
 @Composable
-private fun WeekSelector(
+private fun MonthDateSelector(
     dates: List<LocalDate>,
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(GymFuelSpacing.xSmall)) {
-        dates.forEach { date ->
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = dates.lastIndex.coerceAtLeast(0))
+    LaunchedEffect(dates.size) {
+        if (dates.isNotEmpty()) listState.scrollToItem(dates.lastIndex)
+    }
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        state = listState,
+        horizontalArrangement = Arrangement.spacedBy(GymFuelSpacing.xSmall),
+    ) {
+        items(dates, key = { it.toEpochDay() }) { date ->
             val selected = date == selectedDate
             Column(
                 modifier = Modifier
-                    .weight(1f)
+                    .width(54.dp)
                     .height(64.dp)
                     .clip(MaterialTheme.shapes.small)
                     .clickable { onDateSelected(date) }
@@ -188,10 +208,20 @@ private fun WeekSelector(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LoggedFoodCard(entry: FoodEntry, onUpdateStatus: (String, EntryStatus) -> Unit) {
+private fun LoggedFoodCard(
+    entry: FoodEntry,
+    onUpdateStatus: (String, EntryStatus) -> Unit,
+    onRemove: (FoodEntry) -> Unit,
+) {
+    var confirmRemoval by remember(entry.id) { mutableStateOf(false) }
     val totals = entry.nutritionPer100gSnapshot.forQuantity(entry.quantityGrams)
     Surface(
+        modifier = Modifier.combinedClickable(
+            onClick = { confirmRemoval = true },
+            onLongClick = { confirmRemoval = true },
+        ),
         color = MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.medium,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
@@ -246,12 +276,23 @@ private fun LoggedFoodCard(entry: FoodEntry, onUpdateStatus: (String, EntryStatu
             }
         }
     }
+    if (confirmRemoval) {
+        AlertDialog(
+            onDismissRequest = { confirmRemoval = false },
+            title = { Text("Remove logged food?") },
+            text = { Text("${entry.foodNameSnapshot} will be removed from this day. You can undo immediately afterward.") },
+            confirmButton = {
+                TextButton(onClick = { confirmRemoval = false; onRemove(entry) }) { Text("Remove") }
+            },
+            dismissButton = { TextButton(onClick = { confirmRemoval = false }) { Text("Cancel") } },
+        )
+    }
 }
 
 @Composable
 private fun EntryBadge(entry: FoodEntry) {
     val time = entry.consumedAt?.let {
-        DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault()).format(it)
+        DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH).withZone(ZoneId.systemDefault()).format(it)
     }
     val label = time ?: entry.status.wireValue.replaceFirstChar(Char::uppercase)
     val description = time?.let { "Logged at $it" } ?: "Status $label"

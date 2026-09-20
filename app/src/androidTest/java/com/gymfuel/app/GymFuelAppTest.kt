@@ -17,6 +17,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.longClick
 import java.time.LocalDate
 import java.math.BigDecimal
 import com.gymfuel.app.core.data.FoodRepository
@@ -41,7 +43,10 @@ class GymFuelAppTest {
     fun useIsolatedNutritionData() {
         database = Room.inMemoryDatabaseBuilder(composeRule.activity, GymFuelDatabase::class.java).build()
         repository = FoodRepository(database)
-        runBlocking { repository.initialize() }
+        runBlocking {
+            repository.initialize()
+            repository.activateOwner("compose-test-user")
+        }
         composeRule.activityRule.scenario.onActivity { activity ->
             activity.setContent { GymFuelApp(repository = repository) }
         }
@@ -176,9 +181,32 @@ class GymFuelAppTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("SYNCING").assertIsDisplayed()
+        composeRule.onNodeWithText("Added Chicken breast").assertIsDisplayed()
         composeRule.onNode(hasContentDescription("Logged at", substring = true))
             .performScrollTo()
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun longPressLoggedFood_removesItAndSnackbarUndoRestoresIt() {
+        showApp()
+        goToToday()
+        runBlocking {
+            repository.logFood(
+                LocalSeedFoods.all.first { it.name == "Chicken breast" }.id,
+                BigDecimal("100"),
+                EntryStatus.Consumed,
+            )
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Chicken breast").performScrollTo().performTouchInput { longClick() }
+        composeRule.onNodeWithText("Remove logged food?").assertIsDisplayed()
+        composeRule.onNodeWithText("Remove").performClick()
+        composeRule.onNodeWithText("Removed Chicken breast").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Undo").performClick()
+        composeRule.onNodeWithText("Chicken breast").performScrollTo().assertIsDisplayed()
     }
 
     @Test

@@ -13,10 +13,13 @@ values
   ('aaaaaaaa-0000-4000-8000-000000000001', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'A food', 'cooked', 100, 20, 0, 2),
   ('bbbbbbbb-0000-4000-8000-000000000001', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'B food', 'cooked', 100, 20, 0, 2);
 
-insert into public.profiles (user_id)
+insert into public.profiles (
+  user_id, age_years, formula_sex, height_centimeters,
+  weight_kilograms, activity_multiplier, surplus_calories
+)
 values
-  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
-  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 25, 'male', 175, 75, 1.55, 250),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 28, 'female', 165, 60, 1.55, 200);
 
 insert into public.nutrition_targets (id, user_id, effective_from, calories, protein_grams, carbohydrate_grams, fat_grams)
 values
@@ -51,6 +54,11 @@ with updated as (
   set liters = 1
   where id = 'bbbbbbbb-3000-4000-8000-000000000001'
   returning id
+), updated_profile as (
+  update public.profiles
+  set age_years = 99
+  where user_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+  returning user_id
 ), results as (
   select
     (select count(*) from public.profiles) as visible_profiles,
@@ -59,14 +67,15 @@ with updated as (
     (select count(*) from public.food_entries) as visible_entries,
     (select count(*) from public.water_entries) as visible_water_entries,
     (select count(*) from updated) as cross_user_updates,
-    (select count(*) from updated_water) as cross_user_water_updates
+    (select count(*) from updated_water) as cross_user_water_updates,
+    (select count(*) from updated_profile) as cross_user_profile_updates
 )
 select
   *,
   1 / case when
     visible_profiles = 1 and visible_targets = 1 and visible_foods = 1 and
     visible_entries = 1 and visible_water_entries = 1 and
-    cross_user_updates = 0 and cross_user_water_updates = 0
+    cross_user_updates = 0 and cross_user_water_updates = 0 and cross_user_profile_updates = 0
   then 1 else 0 end as assertions_passed
 from results;
 

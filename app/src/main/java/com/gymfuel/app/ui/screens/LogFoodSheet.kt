@@ -22,6 +22,7 @@ import com.gymfuel.app.ui.theme.GymFuelSpacing
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private enum class LogKind { SavedFood, QuickFood, Water }
 
@@ -37,7 +38,7 @@ fun LogFoodSheet(
 ) {
     var kind by rememberSaveable { mutableStateOf(LogKind.SavedFood) }
     val dayLabel = remember(date) {
-        if (date == LocalDate.now()) "today" else date.format(DateTimeFormatter.ofPattern("MMM d"))
+        if (date == LocalDate.now()) "today" else date.format(DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH))
     }
     val sheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.92f
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
