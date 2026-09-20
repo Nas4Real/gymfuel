@@ -241,3 +241,42 @@ Authenticated session
 | Delete/Undo races create duplicate or lost history | High | Stable client UUID, tombstone upsert, one outbox key per entity, state-based tests |
 | CSV export leaks data unintentionally | Medium | User-selected document destination, local generation only, no logs or automatic sharing |
 | Large history becomes slow | Medium | Indexed owner/date queries, range-scoped export, paginated/ordered cloud reads when data grows |
+
+## Active Upgrade: Hosted Auth Confirmation Result
+
+Specification: `docs/auth-confirmation-web-spec.md`
+
+### Dependency graph
+
+```text
+Pure callback-state parser
+    -> tested success/error/unavailable contract
+        -> accessible GymFuel result page
+            -> deterministic static build + security headers
+                -> GitHub source ready for Vercel import
+                    -> exact Vercel production URL
+                        -> Android sign-up redirect + Supabase allow list
+```
+
+### Architecture decisions
+
+- Add a dependency-free static site under `web/`; Vercel publishes only generated `web/dist` output.
+- Supabase continues to verify the email. The web page interprets the resulting PKCE callback and never holds a Supabase key.
+- Forward only a bounded `code` parameter to the existing native deep link; do not forward arbitrary callback input.
+- Keep the current native redirect active until an exact Vercel production domain exists. Do not use a broad Vercel wildcard in hosted Auth.
+
+### Verification checkpoints
+
+1. Parser checkpoint: focused tests prove success, error, unsafe-code, and direct-visit behavior.
+2. Web checkpoint: build, audit, responsive browser, console, keyboard, and accessibility checks pass.
+3. Integration checkpoint after Vercel deployment: exact redirect is allow-listed, Android requests it, and a new-account confirmation succeeds on phone and desktop.
+
+### Risks and mitigations
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Page claims success when visited directly | High | Success requires a valid bounded PKCE code; direct visits render unavailable state |
+| Callback input causes XSS or unsafe app URL | High | URLSearchParams, textContent, generic error copy, and a strict code allow list |
+| One-time code leaks through third-party scripts | High | No analytics/runtime dependencies, CSP, no-referrer, and immediate history cleanup |
+| Guessed Vercel domain becomes an open redirect | High | Wait for the assigned production domain, then configure the exact callback URL |
+| Desktop cannot complete the phone’s PKCE exchange | Medium | Email is already verified; explain that the user can return to the app and sign in |

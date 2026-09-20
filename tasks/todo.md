@@ -275,3 +275,39 @@ Plan: `tasks/plan.md`
 - [x] Run database advisors/RLS assertions, full JVM/lint/build/device suites, English string audit, secret/personal-data scan, and clean/upgrade phone smoke tests.
 - [x] Install and push the verified APK/source while preserving existing phone data.
 - Acceptance: all new specification criteria have recorded evidence and the worktree is clean on `main`.
+
+## Milestone 8: Hosted auth confirmation result
+
+### Task 29 — Tested callback contract
+
+- [ ] Add a dependency-free web package and write failing tests for successful PKCE callbacks, expired/invalid errors, direct visits, and unsafe codes.
+- [ ] Implement the smallest pure parser and native-app URL builder that satisfies the tests.
+- Acceptance: only a bounded `code` produces a success state and native continuation URL; external error text is never rendered verbatim.
+- Verify: `npm test` from `web/` and focused test output proving the initial RED state was observed.
+- Likely files: `web/package.json`, parser, parser tests.
+- Dependency: approved `docs/auth-confirmation-web-spec.md`.
+- Scope: S, 3 files plus lockfile.
+
+### Task 30 — Accessible Vercel static page
+
+- [ ] Implement success, expired/invalid, and unavailable result states using GymFuel’s dark Poppins design system.
+- [ ] Add a deterministic static build, local server, Vercel headers, deployment guide, and ignored output.
+- Acceptance: responsive result page has no inline script, no secret, no analytics, safe headers, and a keyboard-visible primary action.
+- Verify: `npm test`, `npm run build`, `npm audit`, local browser screenshots and accessibility/console checks.
+- Likely files: page HTML/CSS/controller, build/server scripts, `vercel.json`, `web/README.md`, `.gitignore`.
+- Dependency: Task 29.
+- Scope: split into parser and UI commits if the combined change exceeds reviewable size.
+
+### Task 31 — Production callback integration
+
+- [ ] After Vercel deployment, add the exact production callback URL to Supabase Auth while preserving the native callback.
+- [ ] Configure Android sign-up to request the hosted callback, rebuild/install, and verify new-account confirmation on phone and desktop.
+- Acceptance: confirmation never ends on a blank tab; success/error states are accurate; the Android app completes PKCE when continued on the originating phone.
+- Verify: Supabase config diff, Android unit/lint/build checks, hosted browser check, and physical-phone sign-up smoke test.
+- Dependencies: Task 30 and the owner-provided Vercel production URL.
+- Scope: M, hosted config plus focused Android configuration/test changes.
+
+## Hosted confirmation approval
+
+- [x] Owner approved the hosted callback architecture and requested repository/Supabase preparation.
+- [x] Owner will deploy the prepared `web` root to Vercel and provide the assigned production URL.
