@@ -242,7 +242,11 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
+# Source-controlled confirmation template for local Auth and managed deployments.
+[auth.email.template.confirmation]
+subject = "Confirm your GymFuel account"
+content_path = "./supabase/templates/confirmation.html"
+
 # [auth.email.template.invite]
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
