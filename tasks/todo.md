@@ -272,6 +272,6 @@ Plan: `tasks/plan.md`
 
 ### Task 28 — Upgrade release gate
 
-- [ ] Run database advisors/RLS assertions, full JVM/lint/build/device suites, English string audit, secret/personal-data scan, and clean/upgrade phone smoke tests.
-- [ ] Install and push the verified APK/source while preserving existing phone data.
+- [x] Run database advisors/RLS assertions, full JVM/lint/build/device suites, English string audit, secret/personal-data scan, and clean/upgrade phone smoke tests.
+- [x] Install and push the verified APK/source while preserving existing phone data.
 - Acceptance: all new specification criteria have recorded evidence and the worktree is clean on `main`.
