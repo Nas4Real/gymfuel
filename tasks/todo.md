@@ -300,7 +300,7 @@ Plan: `tasks/plan.md`
 
 ### Task 31 — Production callback integration
 
-- [ ] After Vercel deployment, add the exact production callback URL to Supabase Auth while preserving the native callback.
+- [x] After Vercel deployment, add the exact production callback URL to Supabase Auth while preserving the native callback.
 - [ ] Configure Android sign-up to request the hosted callback, rebuild/install, and verify new-account confirmation on phone and desktop.
 - Acceptance: confirmation never ends on a blank tab; success/error states are accurate; the Android app completes PKCE when continued on the originating phone.
 - Verify: Supabase config diff, Android unit/lint/build checks, hosted browser check, and physical-phone sign-up smoke test.

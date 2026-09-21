@@ -16,7 +16,7 @@ class AuthCallbackIntentTest {
     @Test
     fun confirmationCallbackResolvesToMainActivity() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val callbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse(AuthCallbackConfig.redirectUrl)).apply {
+        val callbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse(AuthCallbackConfig.nativeRedirectUrl)).apply {
             addCategory(Intent.CATEGORY_BROWSABLE)
         }
 

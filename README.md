@@ -59,10 +59,10 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
 
 The Android client must use only a publishable key. Never place a Supabase secret or `service_role` key in this repository or the APK.
 
-Supabase Auth must allow the native confirmation callback `com.gymfuel.app://auth-callback` in **Authentication → URL Configuration**. The app requests that URL during sign-up, handles it through an Android browsable intent filter, and exchanges the returned PKCE code for a persisted session.
+Supabase Auth must allow both the hosted confirmation callback `https://gymfuel-lilac.vercel.app/auth/callback` and the native callback `com.gymfuel.app://auth-callback` in **Authentication → URL Configuration**. The app requests the hosted URL during sign-up. After Supabase verifies the email, the hosted page can forward the bounded PKCE code to the native callback, which the Android browsable intent filter handles to create a persisted session.
 
 ## Hosted email-confirmation result
 
 The dependency-free site in [`web/`](web/) is ready to deploy from this repository with Vercel. Set the Vercel project **Root Directory** to `web`; its checked-in configuration runs the static build, publishes only `web/dist`, and applies callback privacy/security headers.
 
-The hosted Supabase redirect is intentionally not enabled until Vercel assigns the real production domain. After deployment, use the exact `https://<domain>/auth/callback` URL—never a broad Vercel wildcard—and keep the native callback as a fallback. See [`web/README.md`](web/README.md) for the deployment steps.
+The production callback is `https://gymfuel-lilac.vercel.app/auth/callback`. Use this exact URL—never a broad Vercel wildcard—and keep the native callback as a fallback. See [`web/README.md`](web/README.md) for deployment and verification steps.

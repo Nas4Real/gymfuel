@@ -51,7 +51,7 @@ class SupabaseGateway private constructor(val client: SupabaseClient?) {
         require(email.isNotBlank() && password.length >= 8) { "Use a valid email and at least 8 password characters" }
         requireNotNull(client) { "Supabase is not configured" }.auth.signUpWith(
             provider = Email,
-            redirectUrl = AuthCallbackConfig.redirectUrl,
+            redirectUrl = AuthCallbackConfig.emailConfirmationRedirectUrl,
         ) {
             this.email = email.trim()
             this.password = password

@@ -7,8 +7,12 @@ import org.junit.Test
 
 class AuthCallbackConfigTest {
     @Test
-    fun `builds the app-specific confirmation callback`() {
-        assertEquals("com.gymfuel.app://auth-callback", AuthCallbackConfig.redirectUrl)
+    fun `keeps native callback separate from hosted email confirmation redirect`() {
+        assertEquals("com.gymfuel.app://auth-callback", AuthCallbackConfig.nativeRedirectUrl)
+        assertEquals(
+            "https://gymfuel-lilac.vercel.app/auth/callback",
+            AuthCallbackConfig.emailConfirmationRedirectUrl,
+        )
     }
 
     @Test

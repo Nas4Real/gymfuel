@@ -6,7 +6,7 @@ Status: Approved for implementation on 2026-09-20
 
 Add a small Vercel-hosted web surface for Supabase email-confirmation callbacks. It replaces the blank desktop tab with a clear GymFuel-branded success, expired-link, invalid-link, or unavailable-status result. On a phone, a successful callback can continue into the installed Android app without exposing a Supabase secret or changing how Supabase verifies the email.
 
-The production callback URL will be configured only after Vercel assigns the real production domain. Until then, the existing native callback remains active.
+The production callback URL is `https://gymfuel-lilac.vercel.app/auth/callback`. The existing native callback remains allowed as the bounded PKCE continuation target and fallback.
 
 ## Tech Stack
 
@@ -106,9 +106,9 @@ CSS uses GymFuel semantic custom properties, an 8px spacing rhythm, dark blue su
 7. Vercel deployment instructions clearly identify the repository and `web` root directory.
 8. Hosted Supabase remains unchanged until the exact Vercel production URL is known.
 
-## Open Question
+## Production Domain
 
-- Final production domain: resolved after the owner imports the GitHub repository into Vercel. That exact URL is required before updating Android’s sign-up redirect and Supabase’s allow list.
+- Vercel production callback: `https://gymfuel-lilac.vercel.app/auth/callback`.
 
 ## Authoritative Sources
 
